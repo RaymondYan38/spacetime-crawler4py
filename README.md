@@ -26,8 +26,8 @@ after ensuring pip is installed for the version of python you are using.
 Admin privileges might be required to execute the commands. Also make sure
 that the terminal is at the root folder of this project.
 ```
-python -m pip install packages/spacetime-2.1.1-py3-none-any.whl
-python -m pip install -r packages/requirements.txt
+python -m pip install spacetime-crawler4py/packages/spacetime-2.1.1-py3-none-any.whl
+python -m pip install -r spacetime-crawler4py/packages/requirements.txt
 ```
 
 ### Step 2: Configuring config.ini
