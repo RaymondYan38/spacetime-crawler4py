@@ -246,6 +246,9 @@ def is_valid(url):
         if url.startswith("mailto:"):
             logging.warning(f"URL rejected: {url} - Reason: mailto URL")
             return False
+        if url.startswith("javascript:"):
+            logging.warning(f"URL rejected: {url} - Reason: JavaScript URL")
+            return False
         # Canonicalize the URL
         canonical_url = canonicalize_url(url)
         # Parse the canonicalized URL
