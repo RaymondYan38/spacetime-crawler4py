@@ -42,6 +42,13 @@ last_access_time = {}
 uniqueURLS = set()
 robotstxtdict = {}
 
+exclusion_rules = [
+    r'/calendar/\d{4}/\d{2}/\d{2}/',
+    r'\bsessionid=\w+',
+    r'\bsort=\w+',       
+    # Add more exclusion rules if needed
+]
+
 def scraper(url, resp):
     can_crawl = politeness(url) 
     if can_crawl:
@@ -175,6 +182,7 @@ http://example.com/, http://example.com/index.html, and http://example.com/? cou
 canonicalization to standardize URLs and avoid crawling the same content multiple times.
 """
 def canonicalize_url(url):
+    
     # Parse the URL
     parsed = urlparse(url)
     # Remove fragment identifier
@@ -193,6 +201,16 @@ def canonicalize_url(url):
     normalized_path = os.path.normpath(decoded_path)  
     # Sort and encode query parameters
     query_params = parse_qsl(decoded_query)
+    
+    # Define known session ID and tracking parameter names
+    session_id_params = ["sessionid", "sid", "phpsessid"]  # Add more if needed
+    tracking_params = ["utm_source", "utm_medium", "utm_campaign"]  # Add more if needed
+    
+    # Remove session ID parameters
+    query_params = [(key, value) for key, value in query_params if key.lower() not in session_id_params]
+    # Remove tracking parameters
+    query_params = [(key, value) for key, value in query_params if key.lower() not in tracking_params]
+    
     sorted_params = sorted(query_params)
     sorted_query = urlencode(sorted_params)
     # Convert scheme and netloc to lowercase
@@ -223,6 +241,26 @@ def is_valid(url):
         if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
             logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
             return False
+        domain = parsed.hostname
+        if domain in robotstxtdict:
+            for pattern in robotstxtdict[domain]['disallowed']:
+                if '*' in pattern:
+                    # Convert wildcard pattern to regex
+                    pattern_regex = pattern.replace('*', '.*')
+                    # Add anchors (^ and $) to match from the beginning and end of the path
+                    pattern_regex = '^' + pattern_regex + '$'
+                    if re.match(pattern_regex, parsed.path):
+                        logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
+                        return False
+                else:
+                    # No wildcard, so simply match the pattern
+                    if parsed.path.startswith(pattern):
+                        logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
+                        return False
+        for rule in exclusion_rules:
+            if re.search(rule, parsed.geturl()):
+                logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
+                return False
         logging.info(f"URL accepted: {url}")
         return True
     except TypeError:
