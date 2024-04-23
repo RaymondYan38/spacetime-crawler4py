@@ -169,7 +169,7 @@ def extract_next_links(url, resp):
 
             # Check if we have already seen this content or if it is near duplicat
             if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
-                simhash_index.add(simhash) #add simhash to the index
+                simhash_index.add(simhash, content_hash) #add simhash to the index
                 seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
                 for link in soup.find_all('a'): #iterates through the links in the webpage
                     tempURL = link.get('href')
