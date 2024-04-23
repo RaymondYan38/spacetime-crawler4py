@@ -143,7 +143,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
     extracted_links = set()
-    base_url = resp.request.url #original url of the pages
+    base_url = resp.url #original url of the pages
 
     if resp.status == 200 and resp.raw_response.content: #checks for valid response 
         content = resp.raw_response.content
