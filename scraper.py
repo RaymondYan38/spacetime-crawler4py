@@ -1,5 +1,8 @@
 import os
 import re
+import time
+from urllib.error import HTTPError, URLError
+from socket import timeout as Timeout
 from urllib.parse import urlparse, urlunparse, urljoin, urlencode, parse_qsl, quote, unquote
 from urllib import robotparser
 from bs4 import BeautifulSoup
@@ -197,10 +200,12 @@ stop_words = ["a",
 "yourself",
 "yourselves"]
 
+DEFAULT_CRAWL_DELAY = 1
+
 word_to_occurances = defaultdict(int)
 
-uniqueURLS = set()
 robotstxtdict = {}
+last_access_time = {}
 
 def scraper(url, resp):
     can_crawl = politeness(url) 
@@ -214,36 +219,69 @@ def politeness(url):
     parsed_url = urlparse(url)
     domain = parsed_url.hostname
     can_crawl = True
-
     # Check if the main domain's robots.txt has already been checked
     if domain in robotstxtdict:
-        # Check if the current URL is in the list of subdomains that can't be crawled
-        if url in robotstxtdict[domain]['subdomains']:
+        # Check if the current URL is in the disallowed subdomains that can't be crawled
+        if url in robotstxtdict[domain]['disallowed']:
             can_crawl = False
-            return can_crawl
-        
+            return can_crawl 
+        current_time = time.time()
+        last_access = last_access_time[domain]
+        time_since_last_access = current_time - last_access
         crawl_delay = robotstxtdict[domain]['crawl_delay']
+        if time_since_last_access < crawl_delay:
+            # Wait for the remaining crawl delay time
+            time.sleep(crawl_delay - time_since_last_access)
+        return can_crawl    
     else:
         rp = robotparser.RobotFileParser()
         rp.set_url(f"{parsed_url.scheme}://{domain}/robots.txt")
-        
         try:
             rp.read()
             # Check if the domain has a robots.txt file
             if not rp.can_fetch("*", url):
                 can_crawl = False
                 return can_crawl
-            
             crawl_delay = rp.crawl_delay("*")
-            # Cache the crawl delay and subdomains in robotstxtdict
+            # Cache the crawl delay and disallowed subdomains in robotstxtdict
             robotstxtdict[domain] = {
-                'crawl_delay': crawl_delay,
-                'subdomains': set()
+                'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
+                'disallowed': set(rp.disallowed("*")),  # Store all disallowed subdomains
+                'allowed': set(rp.allowed("*"))  # Store all allowed subdomains
             }
+            # Check if the URL matches any disallowed patterns
+            for pattern in robotstxtdict[domain]['disallowed']:
+                # Convert wildcard pattern to regex and match against the URL
+                if '*' in pattern:
+                    regex_pattern = re.escape(pattern).replace(r'\*', '.*')
+                    if re.match(regex_pattern, url):
+                        can_crawl = False
+                        break
+                elif url.startswith(pattern):
+                    # Check if the URL starts with the disallowed pattern
+                    can_crawl = False
+                    break
+        except HTTPError as e:
+            if e.code == 404:
+                # File not found, allow crawling by default
+                can_crawl = True
+            else:
+                # Log other HTTP errors and set a flag to retry or skip
+                logging.error(f"HTTPError accessing robots.txt for domain {domain}: {e}")
+                can_crawl = False
+        except URLError as e:
+            # Log URL errors and possibly retry after a delay
+            logging.error(f"URLError accessing robots.txt for domain {domain}: {e}")
+            can_crawl = False
+        except Timeout as e:
+            # Log timeout errors and implement a retry strategy
+            logging.error(f"Timeout accessing robots.txt for domain {domain}: {e}")
+            can_crawl = False
         except Exception as e:
-            # Handle exceptions, e.g., network errors, missing robots.txt
-            pass
-
+            # Handle other exceptions
+            logging.error(f"Error accessing robots.txt for domain {domain}: {e}")
+            can_crawl = False
+    last_access_time[domain] = time.time()
     return can_crawl
 
 def extract_next_links(url, resp):
@@ -338,6 +376,23 @@ def is_valid(url):
         if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
             logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
             return False
+       # Check if the URL matches any disallowed patterns from robots.txt
+        domain = parsed.hostname
+        if domain in robotstxtdict:
+            for pattern in robotstxtdict[domain]['disallowed']:
+                if '*' in pattern:
+                    # Convert wildcard pattern to regex
+                    pattern_regex = pattern.replace('*', '.*')
+                    # Add anchors (^ and $) to match from the beginning and end of the path
+                    pattern_regex = '^' + pattern_regex + '$'
+                    if re.match(pattern_regex, parsed.path):
+                        logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
+                        return False
+                else:
+                    # No wildcard, so simply match the pattern
+                    if parsed.path.startswith(pattern):
+                        logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
+                        return False
         logging.info(f"URL accepted: {url}")
         return True
     except TypeError:
