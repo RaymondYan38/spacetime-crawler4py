@@ -11,6 +11,7 @@ import logging
 import logging.config
 import hashlib
 import nltk
+nltk.download('punkt')
 from nltk.tokenize import word_tokenize
 nltk.download('stopwords')
 from nltk.corpus import stopwords
