@@ -10,7 +10,15 @@ from collections import defaultdict
 import logging
 import logging_config
 import hashlib
+import nltk
+from nltk.tokenize import word_tokenize
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+from collections import Counter
+from simhash import Simhash, SimhashIndex
 
+seen_fingerprints = set()
+robotstxtdict = {}
 NON_HTML_EXTENSIONS_PATTERN = re.compile(
     r"\.(css|js|bmp|gif|jpe?g|ico"
     + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -26,33 +34,13 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 
 longest_page = [None, float("-inf")]
 
-stop_words = ["a","about","above","after","again","against","all","am","an",
-              "and","any","are","aren't","as","at","be","because","been","before","being","below","between",
-              "both","but","by","can't","cannot","could","couldn't","did","didn't","do",
-              "does","doesn't","doing","don't","down","during","each","few","for",
-              "from","further","had","hadn't","has","hasn't","have","haven't","having","he","he'd","he'll","he's","her", 
-              "here","here's","hers","herself","him","himself","his","how","how's","i",
-              "i'd","i'll","i'm","i've","if","in","into","is","isn't","it","it's","its",
-              "itself","let's","me","more","most","mustn't","my","myself","no",
-              "nor","not","of","off","on","once","only","or","other","ought","our","ours","ourselves","out","over","own",
-              "same","shan't","she","she'd","she'll","she's","should","shouldn't","so","some","such",
-              "than","that","that's","the","their","theirs","them","themselves","then",
-              "there","there's","these","they","they'd","they'll","they're","they've",
-              "this","those","through","to","too","under","until","up","very",
-              "was","wasn't","we","we'd","we'll","we're","we've","were","weren't","what",
-              "what's","when","when's","where","where's","which","while","who",
-              "who's","whom","why","why's","with","won't","would","wouldn't","you",
-              "you'd","you'll","you're","you've","your","yours","yourself","yourselves"]
 
 DEFAULT_CRAWL_DELAY = 1
 
 word_to_occurances = defaultdict(int)
-
-robotstxtdict = {}
 last_access_time = {}
-seen_fingerprints = set()
+robotstxtdict = {}
 
-# Define exclusion rules for problematic URL patterns
 exclusion_rules = [
     r'/calendar/\d{4}/\d{2}/\d{2}/',
     r'\bsessionid=\w+',
@@ -67,6 +55,7 @@ def scraper(url, resp):
         return [link for link in links if is_valid(link)]
     else:
         return []
+    
 
 def politeness(url):
     parsed_url = urlparse(url)
@@ -150,19 +139,24 @@ def extract_next_links(url, resp):
     extracted_links = set()
     base_url = resp.request.url #original url of the pages
 
-    if resp.status == 200 and has_high_content(resp): #checks for valid response and if it has enough textual content
+    if resp.status == 200 and has_high_content(url, resp): #checks for valid response and if it has enough textual content
         content = resp.raw_response.content
         # Generate a hash of the content for exact duplicate detection
         content_hash = hashlib.sha256(content).hexdigest()
-        # Check if we have already seen this content
-        if content_hash not in seen_fingerprints:
-            seen_fingerprints.add(content_hash)  # Add new fingerprint to th
+        simhash_index = SimhashIndex([])
+        simhash = calculate_simhash(content) #generate simhash
+
+        # Check if we have already seen this content or if it is near duplicat
+        if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
+            simhash_index.add(simhash) #add simhash to the index
+            seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
             soup = BeautifulSoup(content, 'html.parser')
 
-            for link in soup.find_all('a'):
+            for link in soup.find_all('a'): #iterates through the links in the webpage
                 tempURL = link.get('href')
 
                 if tempURL:
+
                     clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                     clean_url = defragment_url(clean_url) #removes fragmentation
                     extracted_links.add(clean_url)
@@ -176,22 +170,18 @@ def extract_next_links(url, resp):
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
-            if is_valid(redirect_url) and has_high_content(redirect_url):
+            if is_valid(redirect_url) and has_high_content(url, redirect_url):
                 extracted_links.add(redirect_url)
 
         
     return extracted_links
-
-def defragment_url(url):
-    # removes the fragment section of url and returns the url without it
-    parsed_url = urlparse(url)._replace(fragment='')
-    return urlunparse(parsed_url)
 
 """URLs can represent the same page in multiple ways. For example, http://example.com, 
 http://example.com/, http://example.com/index.html, and http://example.com/? could all point to the same resource. Implemened URL 
 canonicalization to standardize URLs and avoid crawling the same content multiple times.
 """
 def canonicalize_url(url):
+    
     # Parse the URL
     parsed = urlparse(url)
     # Remove fragment identifier
@@ -250,7 +240,6 @@ def is_valid(url):
         if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
             logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
             return False
-       # Check if the URL matches any disallowed patterns from robots.txt
         domain = parsed.hostname
         if domain in robotstxtdict:
             for pattern in robotstxtdict[domain]['disallowed']:
@@ -277,21 +266,48 @@ def is_valid(url):
         print("TypeError for ", parsed)
         raise
 
-def has_high_content(response):
+def defragment_url(url):
+    # removes the fragment section of url and returns the url without it
+    parsed_url = urlparse(url)._replace(fragment='')
+    return urlunparse(parsed_url)
+
+
+def has_high_content(url, response):
 
     """checks if response has enough textual content by comparing the word to html tag ratio to a given threshold"""
 
     if response.raw_response:
         html_content = response.raw_response.content
-        soup = BeautifulSoup(html_content, 'html.parser')
+        max_file_size = 10 * 1024 *1024
+        if len(html_content) > max_file_size: #want to avoid large files
+            return False
+        else :
+            soup = BeautifulSoup(html_content, 'html.parser')
 
-        text = soup.get_text()
-        word_count = len(text.split())
-        tag_count = tag_count = len(soup.find_all())
+            text = soup.get_text()
+            word_count = len(text.split())
+            tag_count = len(soup.find_all())
+            longest_page = [url, word_count] if word_count > longest_page[1] else longest_page
+            threshold = 50
 
-        threshold = 50
-
-        return (word_count/tag_count) > 50
-        
+            return (word_count/tag_count) > threshold
+    
 
     return False
+
+def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
+    #checks if webpage is near duplicate by using simhashing
+    near_duplicates = simhash_index.get_near_dups(simhash)
+    for near_duplicate in near_duplicates:
+        if simhash.distance(Simhash(near_duplicate)) <= similarity_threshold:
+            return True
+    return False
+
+def calculate_simhash(html_content) :
+    #calculates the sim hash of the html content
+    soup = BeautifulSoup(html_content, "html.parser", from_encoding="utf-8")
+    text_content = soup.get_text()
+    tokens = word_tokenize(text_content.lower())
+    features = Counter(tokens)
+    simhash = Simhash(features)
+    return simhash
