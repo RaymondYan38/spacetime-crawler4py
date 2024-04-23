@@ -1,8 +1,55 @@
+import os
 import re
-from urllib.parse import urlparse, urlunparse, urljoin
+import time
+from urllib.error import HTTPError, URLError
+from socket import timeout as Timeout
+from urllib.parse import urlparse, urlunparse, urljoin, urlencode, parse_qsl, quote, unquote
 from urllib import robotparser
 from bs4 import BeautifulSoup
+from collections import defaultdict
+import logging
+import logging_config
+import hashlib
 
+seen_fingerprints = set()
+robotstxtdict = {}
+NON_HTML_EXTENSIONS_PATTERN = re.compile(
+    r"\.(css|js|bmp|gif|jpe?g|ico"
+    + r"|png|tiff?|mid|mp2|mp3|mp4"
+    + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+    + r"|ps|eps|tex|ppt|pptx|potx|ppsx|sldx|ppam|xlsb|xltx|xltm|xlam|ods|odt|ott|odg|otp|ots|odm|odb"
+    + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+    + r"|epub|dll|cnf|tgz|sha1"
+    + r"|thmx|mso|arff|rtf|jar|csv"
+    + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$"
+)
+
+# self.save in frontier.py should have the answer to report Q1
+
+longest_page = [None, float("-inf")]
+
+stop_words = ["a","about","above","after","again","against","all","am","an",
+              "and","any","are","aren't","as","at","be","because","been","before","being","below","between",
+              "both","but","by","can't","cannot","could","couldn't","did","didn't","do",
+              "does","doesn't","doing","don't","down","during","each","few","for",
+              "from","further","had","hadn't","has","hasn't","have","haven't","having","he","he'd","he'll","he's","her", 
+              "here","here's","hers","herself","him","himself","his","how","how's","i",
+              "i'd","i'll","i'm","i've","if","in","into","is","isn't","it","it's","its",
+              "itself","let's","me","more","most","mustn't","my","myself","no",
+              "nor","not","of","off","on","once","only","or","other","ought","our","ours","ourselves","out","over","own",
+              "same","shan't","she","she'd","she'll","she's","should","shouldn't","so","some","such",
+              "than","that","that's","the","their","theirs","them","themselves","then",
+              "there","there's","these","they","they'd","they'll","they're","they've",
+              "this","those","through","to","too","under","until","up","very",
+              "was","wasn't","we","we'd","we'll","we're","we've","were","weren't","what",
+              "what's","when","when's","where","where's","which","while","who",
+              "who's","whom","why","why's","with","won't","would","wouldn't","you",
+              "you'd","you'll","you're","you've","your","yours","yourself","yourselves"]
+
+DEFAULT_CRAWL_DELAY = 1
+
+word_to_occurances = defaultdict(int)
+last_access_time = {}
 uniqueURLS = set()
 robotstxtdict = {}
 
@@ -13,41 +60,75 @@ def scraper(url, resp):
         return [link for link in links if is_valid(link)]
     else:
         return []
+    
 
 def politeness(url):
     parsed_url = urlparse(url)
     domain = parsed_url.hostname
     can_crawl = True
-
     # Check if the main domain's robots.txt has already been checked
     if domain in robotstxtdict:
-        # Check if the current URL is in the list of subdomains that can't be crawled
-        if url in robotstxtdict[domain]['subdomains']:
+        # Check if the current URL is in the disallowed subdomains that can't be crawled
+        if url in robotstxtdict[domain]['disallowed']:
             can_crawl = False
-            return can_crawl
-        
+            return can_crawl 
+        current_time = time.time()
+        last_access = last_access_time[domain]
+        time_since_last_access = current_time - last_access
         crawl_delay = robotstxtdict[domain]['crawl_delay']
+        if time_since_last_access < crawl_delay:
+            # Wait for the remaining crawl delay time
+            time.sleep(crawl_delay - time_since_last_access)
+        return can_crawl    
     else:
         rp = robotparser.RobotFileParser()
         rp.set_url(f"{parsed_url.scheme}://{domain}/robots.txt")
-        
         try:
             rp.read()
             # Check if the domain has a robots.txt file
             if not rp.can_fetch("*", url):
                 can_crawl = False
                 return can_crawl
-            
             crawl_delay = rp.crawl_delay("*")
-            # Cache the crawl delay and subdomains in robotstxtdict
+            # Cache the crawl delay and disallowed subdomains in robotstxtdict
             robotstxtdict[domain] = {
-                'crawl_delay': crawl_delay,
-                'subdomains': set()
+                'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
+                'disallowed': set(rp.disallowed("*")),  # Store all disallowed subdomains
+                'allowed': set(rp.allowed("*"))  # Store all allowed subdomains
             }
+            # Check if the URL matches any disallowed patterns
+            for pattern in robotstxtdict[domain]['disallowed']:
+                # Convert wildcard pattern to regex and match against the URL
+                if '*' in pattern:
+                    regex_pattern = re.escape(pattern).replace(r'\*', '.*')
+                    if re.match(regex_pattern, url):
+                        can_crawl = False
+                        break
+                elif url.startswith(pattern):
+                    # Check if the URL starts with the disallowed pattern
+                    can_crawl = False
+                    break
+        except HTTPError as e:
+            if e.code == 404:
+                # File not found, allow crawling by default
+                can_crawl = True
+            else:
+                # Log other HTTP errors and set a flag to retry or skip
+                logging.error(f"HTTPError accessing robots.txt for domain {domain}: {e}")
+                can_crawl = False
+        except URLError as e:
+            # Log URL errors and possibly retry after a delay
+            logging.error(f"URLError accessing robots.txt for domain {domain}: {e}")
+            can_crawl = False
+        except Timeout as e:
+            # Log timeout errors and implement a retry strategy
+            logging.error(f"Timeout accessing robots.txt for domain {domain}: {e}")
+            can_crawl = False
         except Exception as e:
-            # Handle exceptions, e.g., network errors, missing robots.txt
-            pass
-
+            # Handle other exceptions
+            logging.error(f"Error accessing robots.txt for domain {domain}: {e}")
+            can_crawl = False
+    last_access_time[domain] = time.time()
     return can_crawl
 
 def extract_next_links(url, resp):
@@ -60,61 +141,98 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    extracted_links = []
+    extracted_links = set()
     base_url = resp.request.url #original url of the pages
 
     if resp.status == 200 and has_high_content(resp): #checks for valid response and if it has enough textual content
-        
-        soup = BeautifulSoup(resp.raw_response, 'html.parser')
-        for link in soup.find_all('a'):
-            tempURL = link.get('href')
-            if tempURL:
-                clean_url = urljoin(base_url, tempURL) #resolves relative URLs
-                clean_url = defragment_url(clean_url) #removes fragmentation
+        content = resp.raw_response.content
+        # Generate a hash of the content for exact duplicate detection
+        content_hash = hashlib.sha256(content).hexdigest()
+        # Check if we have already seen this content
+        if content_hash not in seen_fingerprints:
+            seen_fingerprints.add(content_hash)  # Add new fingerprint to th
+            soup = BeautifulSoup(content, 'html.parser')
 
-                if clean_url not in extracted_links:
-                    extracted_links.append(clean_url)
+            for link in soup.find_all('a'):
+                tempURL = link.get('href')
 
-    if resp.status == 302 or resp.status == 301: #handles redirects
+                if tempURL:
+                    clean_url = urljoin(base_url, tempURL) #resolves relative URLs
+                    clean_url = defragment_url(clean_url) #removes fragmentation
+                    extracted_links.add(clean_url)
+
+    elif resp is None or resp.raw_response is None:
+        return []
+    elif resp.status != 200 and resp.status != 301 and resp.status != 302:
+        print(resp.error)
+        return[]
+    elif resp and (resp.status == 302 or resp.status == 301): #handles redirects
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
             if is_valid(redirect_url) and has_high_content(redirect_url):
-                extracted_links.append(redirect_url)
+                extracted_links.add(redirect_url)
 
+        
     return extracted_links
 
+"""URLs can represent the same page in multiple ways. For example, http://example.com, 
+http://example.com/, http://example.com/index.html, and http://example.com/? could all point to the same resource. Implemened URL 
+canonicalization to standardize URLs and avoid crawling the same content multiple times.
+"""
+def canonicalize_url(url):
+    # Parse the URL
+    parsed = urlparse(url)
+    # Remove fragment identifier
+    parsed = parsed._replace(fragment='')
+    # Decode encoded characters in the path and query
+    decoded_path = unquote(parsed.path)
+    decoded_query = unquote(parsed.query)
+    # Check if the port matches the default for the scheme
+    default_ports = {"http": 80, "https": 443}
+    if parsed.port == default_ports.get(parsed.scheme):
+        parsed = parsed._replace(netloc=parsed.hostname)
+    # Add trailing slash if missing and no file extension present
+    if decoded_path and not decoded_path.endswith('/') and not os.path.splitext(decoded_path)[1]:
+        decoded_path += '/' 
+    # Normalize the path by resolving dot-segments
+    normalized_path = os.path.normpath(decoded_path)  
+    # Sort and encode query parameters
+    query_params = parse_qsl(decoded_query)
+    sorted_params = sorted(query_params)
+    sorted_query = urlencode(sorted_params)
+    # Convert scheme and netloc to lowercase
+    parsed = parsed._replace(scheme=parsed.scheme.lower(),
+                             netloc=parsed.netloc.lower(),
+                             path=quote(normalized_path),  
+                             query=sorted_query)
+    # Return the canonicalized URL
+    return parsed.geturl()
+
 def is_valid(url):
-    # Decide whether to crawl this url or not. 
-    # If you decide to crawl it, return True; otherwise return False.
-    # There are already some conditions that return False.
     try:
-        parsed = urlparse(url)
-        valid_domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
-        valid_paths = ['/']
-        if parsed.scheme not in set(["http", "https"]) or (url.find("?") != -1) or (url.find("&") != -1):
+        # Canonicalize the URL
+        canonical_url = canonicalize_url(url)
+        # Parse the canonicalized URL
+        parsed = urlparse(canonical_url)
+        if parsed.scheme not in {"http", "https"}:
+            logging.warning(f"URL rejected: {url} - Reason: not HTTP or HTTPS")
             return False
-        
-        if parsed.netloc.endswith(tuple(valid_domains)) and any(parsed.path.startswith(path) for path in valid_paths):
-
-            if re.match(
-                r".*\.(css|js|bmp|gif|jpe?g|ico"
-                + r"|png|tiff?|mid|mp2|mp3|mp4"
-                + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-                + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-                + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-                + r"|epub|dll|cnf|tgz|sha1"
-                + r"|thmx|mso|arff|rtf|jar|csv"
-                + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()):
-                return False
-            if url in uniqueURLS:
-                return False
-            else:
-                uniqueURLS.add(url)
-                return True
-
+        valid_domains = [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]
+        # Check if the domain is one of the specified domains
+        if not any(parsed.netloc.endswith(domain) for domain in valid_domains):
+            logging.warning(f"URL rejected: {url} - Reason: domain is NOT one of the specified domains")
+            return False
+        # Extract the path without query parameters
+        path_without_query = parsed.path.split('?')[0]
+        # Check if the path ends with a non-HTML file extension
+        if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
+            logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
+            return False
+        logging.info(f"URL accepted: {url}")
+        return True
     except TypeError:
-        print ("TypeError for ", parsed)
+        print("TypeError for ", parsed)
         raise
 
 def defragment_url(url):
@@ -129,15 +247,24 @@ def has_high_content(response):
 
     if response.raw_response:
         html_content = response.raw_response.content
-        soup = BeautifulSoup(html_content, 'html.parser')
+        max_file_size = 10 * 1024 *1024
+        if len(html_content) > max_file_size:
+            return False
+        else :
+            soup = BeautifulSoup(html_content, 'html.parser')
 
-        text = soup.get_text()
-        word_count = len(text.split())
-        tag_count = tag_count = len(soup.find_all())
+            text = soup.get_text()
+            word_count = len(text.split())
+            tag_count = len(soup.find_all())
 
-        threshold = 50
+            threshold = 50
 
-        return (word_count/tag_count) > 50
-        
+            return (word_count/tag_count) > 50
+    
 
     return False
+
+def is_similar(url):
+    pass
+
+
