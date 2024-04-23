@@ -18,6 +18,8 @@ from nltk.corpus import stopwords
 from collections import Counter
 from simhash import Simhash, SimhashIndex
 
+sw = stopwords.words('english')
+
 seen_fingerprints = set()
 robotstxtdict = {}
 NON_HTML_EXTENSIONS_PATTERN = re.compile(
@@ -156,7 +158,7 @@ def extract_next_links(url, resp):
             soup = BeautifulSoup(content, "html.parser", from_encoding="utf-8")
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
-            tokens_without_stop_words = [token for token in tokens if token not in stopwords and len(token) >= 2]
+            tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
             valid_tokens_len = len(tokens)
             longest_page = [url, valid_tokens_len] if valid_tokens_len > longest_page[1] else longest_page
             for token in tokens_without_stop_words:
