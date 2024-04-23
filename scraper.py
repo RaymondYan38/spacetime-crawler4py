@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from collections import defaultdict
 import logging
 import logging_config
+import hashlib
 
 NON_HTML_EXTENSIONS_PATTERN = re.compile(
     r"\.(css|js|bmp|gif|jpe?g|ico"
@@ -25,180 +26,23 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 
 longest_page = [None, float("-inf")]
 
-stop_words = ["a",
-"about",
-"above",
-"after",
-"again",
-"against",
-"all",
-"am",
-"an",
-"and",
-"any",
-"are",
-"aren't",
-"as",
-"at",
-"be",
-"because",
-"been",
-"before",
-"being",
-"below",
-"between",
-"both",
-"but",
-"by",
-"can't",
-"cannot",
-"could",
-"couldn't",
-"did",
-"didn't",
-"do",
-"does",
-"doesn't",
-"doing",
-"don't",
-"down",
-"during",
-"each",
-"few",
-"for",
-"from",
-"further",
-"had",
-"hadn't",
-"has",
-"hasn't",
-"have",
-"haven't",
-"having",
-"he",
-"he'd",
-"he'll",
-"he's",
-"her",
-"here",
-"here's",
-"hers",
-"herself",
-"him",
-"himself",
-"his",
-"how",
-"how's",
-"i",
-"i'd",
-"i'll",
-"i'm",
-"i've",
-"if",
-"in",
-"into",
-"is",
-"isn't",
-"it",
-"it's",
-"its",
-"itself",
-"let's",
-"me",
-"more",
-"most",
-"mustn't",
-"my",
-"myself",
-"no",
-"nor",
-"not",
-"of",
-"off",
-"on",
-"once",
-"only",
-"or",
-"other",
-"ought",
-"our",
-"ours",
-"ourselves",
-"out",
-"over",
-"own",
-"same",
-"shan't",
-"she",
-"she'd",
-"she'll",
-"she's",
-"should",
-"shouldn't",
-"so",
-"some",
-"such",
-"than",
-"that",
-"that's",
-"the",
-"their",
-"theirs",
-"them",
-"themselves",
-"then",
-"there",
-"there's",
-"these",
-"they",
-"they'd",
-"they'll",
-"they're",
-"they've",
-"this",
-"those",
-"through",
-"to",
-"too",
-"under",
-"until",
-"up",
-"very",
-"was",
-"wasn't",
-"we",
-"we'd",
-"we'll",
-"we're",
-"we've",
-"were",
-"weren't",
-"what",
-"what's",
-"when",
-"when's",
-"where",
-"where's",
-"which",
-"while",
-"who",
-"who's",
-"whom",
-"why",
-"why's",
-"with",
-"won't",
-"would",
-"wouldn't",
-"you",
-"you'd",
-"you'll",
-"you're",
-"you've",
-"your",
-"yours",
-"yourself",
-"yourselves"]
+stop_words = ["a","about","above","after","again","against","all","am","an",
+              "and","any","are","aren't","as","at","be","because","been","before","being","below","between",
+              "both","but","by","can't","cannot","could","couldn't","did","didn't","do",
+              "does","doesn't","doing","don't","down","during","each","few","for",
+              "from","further","had","hadn't","has","hasn't","have","haven't","having","he","he'd","he'll","he's","her", 
+              "here","here's","hers","herself","him","himself","his","how","how's","i",
+              "i'd","i'll","i'm","i've","if","in","into","is","isn't","it","it's","its",
+              "itself","let's","me","more","most","mustn't","my","myself","no",
+              "nor","not","of","off","on","once","only","or","other","ought","our","ours","ourselves","out","over","own",
+              "same","shan't","she","she'd","she'll","she's","should","shouldn't","so","some","such",
+              "than","that","that's","the","their","theirs","them","themselves","then",
+              "there","there's","these","they","they'd","they'll","they're","they've",
+              "this","those","through","to","too","under","until","up","very",
+              "was","wasn't","we","we'd","we'll","we're","we've","were","weren't","what",
+              "what's","when","when's","where","where's","which","while","who",
+              "who's","whom","why","why's","with","won't","would","wouldn't","you",
+              "you'd","you'll","you're","you've","your","yours","yourself","yourselves"]
 
 DEFAULT_CRAWL_DELAY = 1
 
@@ -206,6 +50,15 @@ word_to_occurances = defaultdict(int)
 
 robotstxtdict = {}
 last_access_time = {}
+seen_fingerprints = set()
+
+# Define exclusion rules for problematic URL patterns
+exclusion_rules = [
+    r'/calendar/\d{4}/\d{2}/\d{2}/',
+    r'\bsessionid=\w+',
+    r'\bsort=\w+',       
+    # Add more exclusion rules if needed
+]
 
 def scraper(url, resp):
     can_crawl = politeness(url) 
@@ -294,28 +147,39 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    extracted_links = []
+    extracted_links = set()
     base_url = resp.request.url #original url of the pages
 
     if resp.status == 200 and has_high_content(resp): #checks for valid response and if it has enough textual content
-        
-        soup = BeautifulSoup(resp.raw_response, 'html.parser')
-        for link in soup.find_all('a'):
-            tempURL = link.get('href')
-            if tempURL:
-                clean_url = urljoin(base_url, tempURL) #resolves relative URLs
-                clean_url = defragment_url(clean_url) #removes fragmentation
+        content = resp.raw_response.content
+        # Generate a hash of the content for exact duplicate detection
+        content_hash = hashlib.sha256(content).hexdigest()
+        # Check if we have already seen this content
+        if content_hash not in seen_fingerprints:
+            seen_fingerprints.add(content_hash)  # Add new fingerprint to th
+            soup = BeautifulSoup(content, 'html.parser')
 
-                if clean_url not in extracted_links:
-                    extracted_links.append(clean_url)
+            for link in soup.find_all('a'):
+                tempURL = link.get('href')
 
-    if resp.status == 302 or resp.status == 301: #handles redirects
+                if tempURL:
+                    clean_url = urljoin(base_url, tempURL) #resolves relative URLs
+                    clean_url = defragment_url(clean_url) #removes fragmentation
+                    extracted_links.add(clean_url)
+
+    elif resp is None or resp.raw_response is None:
+        return []
+    elif resp.status != 200 and resp.status != 301 and resp.status != 302:
+        print(resp.error)
+        return[]
+    elif resp and (resp.status == 302 or resp.status == 301): #handles redirects
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
             if is_valid(redirect_url) and has_high_content(redirect_url):
-                extracted_links.append(redirect_url)
+                extracted_links.add(redirect_url)
 
+        
     return extracted_links
 
 def defragment_url(url):
@@ -346,6 +210,16 @@ def canonicalize_url(url):
     normalized_path = os.path.normpath(decoded_path)  
     # Sort and encode query parameters
     query_params = parse_qsl(decoded_query)
+    
+    # Define known session ID and tracking parameter names
+    session_id_params = ["sessionid", "sid", "phpsessid"]  # Add more if needed
+    tracking_params = ["utm_source", "utm_medium", "utm_campaign"]  # Add more if needed
+    
+    # Remove session ID parameters
+    query_params = [(key, value) for key, value in query_params if key.lower() not in session_id_params]
+    # Remove tracking parameters
+    query_params = [(key, value) for key, value in query_params if key.lower() not in tracking_params]
+    
     sorted_params = sorted(query_params)
     sorted_query = urlencode(sorted_params)
     # Convert scheme and netloc to lowercase
@@ -393,6 +267,10 @@ def is_valid(url):
                     if parsed.path.startswith(pattern):
                         logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
                         return False
+        for rule in exclusion_rules:
+            if re.search(rule, parsed.geturl()):
+                logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
+                return False
         logging.info(f"URL accepted: {url}")
         return True
     except TypeError:
