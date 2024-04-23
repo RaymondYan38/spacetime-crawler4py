@@ -53,6 +53,7 @@ def scraper(url, resp):
         links = extract_next_links(url, resp)
         return [link for link in links if is_valid(link)]
     else:
+        print(f"politeness is false for this url: {url}")
         return []
     
 
@@ -174,11 +175,14 @@ def extract_next_links(url, resp):
                         extracted_links.add(clean_url)
                         
     elif resp is None or resp.raw_response is None:
+        print("In this case: resp is None or resp.raw_response is None. line 176")
+        print(f"One of these must be true in this case: resp is None: {resp is None} or resp.raw_response is None: {resp.raw_response is None}")
         return []
-    elif resp.status != 200 and resp.status != 301 and resp.status != 302:
+    elif resp.status not in {200, 301, 302}:
+        print("In this case: resp.status not in {200, 301, 302}. line 180")
         print(resp.error)
         return[]
-    elif resp and (resp.status == 302 or resp.status == 301): #handles redirects
+    elif resp and resp.status in {301, 302}: #handles redirects
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
