@@ -83,6 +83,7 @@ def politeness(url):
             rp.read()
             # Check if the domain has a robots.txt file
             if not rp.can_fetch("*", url):
+                print("Failing in this conditional on line 85: if not rp.can_fetch("*", url):")
                 can_crawl = False
                 return can_crawl
             crawl_delay = rp.crawl_delay("*")
