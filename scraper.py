@@ -1,9 +1,51 @@
 import re
 from urllib.parse import urlparse
+from urllib import robotparser
+
+robotstxtdict = {}
 
 def scraper(url, resp):
+    politeness(url)
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
+
+def politeness(url):
+    parsed_url = urlparse(url)
+    domain = parsed_url.hostname
+    can_crawl = True
+
+    # Check if the main domain's robots.txt has already been checked
+    if domain in robotstxtdict:
+        # Check if the current URL is in the list of subdomains that can't be crawled
+        if url in robotstxtdict[domain]['subdomains']:
+            can_crawl = False
+            return can_crawl
+        
+        crawl_delay = robotstxtdict[domain]['crawl_delay']
+    else:
+        rp = robotparser.RobotFileParser()
+        rp.set_url(f"{parsed_url.scheme}://{domain}/robots.txt")
+        
+        try:
+            rp.read()
+            # Check if the domain has a robots.txt file
+            if not rp.can_fetch("*", url):
+                can_crawl = False
+                return can_crawl
+            
+            crawl_delay = rp.crawl_delay("*")
+            # Cache the crawl delay and subdomains in robotstxtdict
+            robotstxtdict[domain] = {
+                'crawl_delay': crawl_delay,
+                'subdomains': set()
+            }
+        except Exception as e:
+            # Handle exceptions, e.g., network errors, missing robots.txt
+            pass
+
+    return can_crawl
+
+
 
 def extract_next_links(url, resp):
     # Implementation required.
