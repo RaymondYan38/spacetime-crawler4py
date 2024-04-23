@@ -8,7 +8,7 @@ from urllib import robotparser
 from bs4 import BeautifulSoup
 from collections import defaultdict
 import logging
-import logging_config
+import logging.config
 import hashlib
 import nltk
 from nltk.tokenize import word_tokenize
@@ -33,7 +33,6 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 # self.save in frontier.py should have the answer to report Q1
 
 longest_page = [None, float("-inf")]
-
 
 DEFAULT_CRAWL_DELAY = 1
 
@@ -136,31 +135,38 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+
     extracted_links = set()
     base_url = resp.request.url #original url of the pages
 
-    if resp.status == 200 and has_high_content(url, resp): #checks for valid response and if it has enough textual content
+    if resp.status == 200 and resp.raw_response.content: #checks for valid response 
         content = resp.raw_response.content
+        if has_high_content(content):
         # Generate a hash of the content for exact duplicate detection
-        content_hash = hashlib.sha256(content).hexdigest()
-        simhash_index = SimhashIndex([])
-        simhash = calculate_simhash(content) #generate simhash
+            content_hash = hashlib.sha256(content).hexdigest()
+            simhash_index = SimhashIndex([])
+            soup = BeautifulSoup(content, "html.parser", from_encoding="utf-8")
+            text_content = soup.get_text()
+            tokens = word_tokenize(text_content.lower())
+            tokens_without_stop_words = [token for token in tokens if token not in stopwords and len(token) >= 2]
+            valid_tokens_len = len(tokens)
+            longest_page = [url, valid_tokens_len] if valid_tokens_len > longest_page[1] else longest_page
+            for token in tokens_without_stop_words:
+                word_to_occurances[token] += 1
+            features = Counter(tokens)
+            simhash = Simhash(features)
 
-        # Check if we have already seen this content or if it is near duplicat
-        if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
-            simhash_index.add(simhash) #add simhash to the index
-            seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
-            soup = BeautifulSoup(content, 'html.parser')
-
-            for link in soup.find_all('a'): #iterates through the links in the webpage
-                tempURL = link.get('href')
-
-                if tempURL:
-
-                    clean_url = urljoin(base_url, tempURL) #resolves relative URLs
-                    clean_url = defragment_url(clean_url) #removes fragmentation
-                    extracted_links.add(clean_url)
-
+            # Check if we have already seen this content or if it is near duplicat
+            if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
+                simhash_index.add(simhash) #add simhash to the index
+                seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
+                for link in soup.find_all('a'): #iterates through the links in the webpage
+                    tempURL = link.get('href')
+                    if tempURL:
+                        clean_url = urljoin(base_url, tempURL) #resolves relative URLs
+                        clean_url = defragment_url(clean_url) #removes fragmentation
+                        extracted_links.add(clean_url)
+                        
     elif resp is None or resp.raw_response is None:
         return []
     elif resp.status != 200 and resp.status != 301 and resp.status != 302:
@@ -170,10 +176,7 @@ def extract_next_links(url, resp):
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
-            if is_valid(redirect_url) and has_high_content(url, redirect_url):
-                extracted_links.add(redirect_url)
-
-        
+            extracted_links.add(redirect_url)
     return extracted_links
 
 """URLs can represent the same page in multiple ways. For example, http://example.com, 
@@ -181,7 +184,6 @@ http://example.com/, http://example.com/index.html, and http://example.com/? cou
 canonicalization to standardize URLs and avoid crawling the same content multiple times.
 """
 def canonicalize_url(url):
-    
     # Parse the URL
     parsed = urlparse(url)
     # Remove fragment identifier
@@ -200,16 +202,13 @@ def canonicalize_url(url):
     normalized_path = os.path.normpath(decoded_path)  
     # Sort and encode query parameters
     query_params = parse_qsl(decoded_query)
-    
     # Define known session ID and tracking parameter names
     session_id_params = ["sessionid", "sid", "phpsessid"]  # Add more if needed
     tracking_params = ["utm_source", "utm_medium", "utm_campaign"]  # Add more if needed
-    
     # Remove session ID parameters
     query_params = [(key, value) for key, value in query_params if key.lower() not in session_id_params]
     # Remove tracking parameters
     query_params = [(key, value) for key, value in query_params if key.lower() not in tracking_params]
-    
     sorted_params = sorted(query_params)
     sorted_query = urlencode(sorted_params)
     # Convert scheme and netloc to lowercase
@@ -271,43 +270,26 @@ def defragment_url(url):
     parsed_url = urlparse(url)._replace(fragment='')
     return urlunparse(parsed_url)
 
-
-def has_high_content(url, response):
+def has_high_content(html_content):
 
     """checks if response has enough textual content by comparing the word to html tag ratio to a given threshold"""
-
-    if response.raw_response:
-        html_content = response.raw_response.content
-        max_file_size = 10 * 1024 *1024
-        if len(html_content) > max_file_size: #want to avoid large files
-            return False
-        else :
-            soup = BeautifulSoup(html_content, 'html.parser')
-
-            text = soup.get_text()
-            word_count = len(text.split())
-            tag_count = len(soup.find_all())
-            longest_page = [url, word_count] if word_count > longest_page[1] else longest_page
-            threshold = 50
-
-            return (word_count/tag_count) > threshold
-    
-
-    return False
+        
+    max_file_size = 10 * 1024 *1024
+    if len(html_content) > max_file_size: #want to avoid large files
+        return False
+    else :
+        soup = BeautifulSoup(html_content, 'html.parser')
+        text = soup.get_text()
+        word_count = len(text.split())
+        tag_count = len(soup.find_all())
+        threshold = 50
+        return (word_count/tag_count) > threshold
 
 def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
     #checks if webpage is near duplicate by using simhashing
     near_duplicates = simhash_index.get_near_dups(simhash)
+
     for near_duplicate in near_duplicates:
         if simhash.distance(Simhash(near_duplicate)) <= similarity_threshold:
             return True
     return False
-
-def calculate_simhash(html_content) :
-    #calculates the sim hash of the html content
-    soup = BeautifulSoup(html_content, "html.parser", from_encoding="utf-8")
-    text_content = soup.get_text()
-    tokens = word_tokenize(text_content.lower())
-    features = Counter(tokens)
-    simhash = Simhash(features)
-    return simhash
