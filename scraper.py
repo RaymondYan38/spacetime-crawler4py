@@ -10,6 +10,12 @@ from collections import defaultdict
 import logging
 import logging_config
 import hashlib
+import nltk
+from nltk.tokenize import word_tokenize
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+from collections import Counter
+from simhash import Simhash, SimhashIndex
 
 seen_fingerprints = set()
 robotstxtdict = {}
@@ -28,23 +34,6 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 
 longest_page = [None, float("-inf")]
 
-stop_words = ["a","about","above","after","again","against","all","am","an",
-              "and","any","are","aren't","as","at","be","because","been","before","being","below","between",
-              "both","but","by","can't","cannot","could","couldn't","did","didn't","do",
-              "does","doesn't","doing","don't","down","during","each","few","for",
-              "from","further","had","hadn't","has","hasn't","have","haven't","having","he","he'd","he'll","he's","her", 
-              "here","here's","hers","herself","him","himself","his","how","how's","i",
-              "i'd","i'll","i'm","i've","if","in","into","is","isn't","it","it's","its",
-              "itself","let's","me","more","most","mustn't","my","myself","no",
-              "nor","not","of","off","on","once","only","or","other","ought","our","ours","ourselves","out","over","own",
-              "same","shan't","she","she'd","she'll","she's","should","shouldn't","so","some","such",
-              "than","that","that's","the","their","theirs","them","themselves","then",
-              "there","there's","these","they","they'd","they'll","they're","they've",
-              "this","those","through","to","too","under","until","up","very",
-              "was","wasn't","we","we'd","we'll","we're","we've","were","weren't","what",
-              "what's","when","when's","where","where's","which","while","who",
-              "who's","whom","why","why's","with","won't","would","wouldn't","you",
-              "you'd","you'll","you're","you've","your","yours","yourself","yourselves"]
 
 DEFAULT_CRAWL_DELAY = 1
 
@@ -148,15 +137,20 @@ def extract_next_links(url, resp):
         content = resp.raw_response.content
         # Generate a hash of the content for exact duplicate detection
         content_hash = hashlib.sha256(content).hexdigest()
-        # Check if we have already seen this content
-        if content_hash not in seen_fingerprints:
-            seen_fingerprints.add(content_hash)  # Add new fingerprint to th
+        simhash_index = SimhashIndex([])
+        simhash = calculate_simhash(content) #generate simhash
+
+        # Check if we have already seen this content or if it is near duplicat
+        if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
+            simhash_index.add(simhash) #add simhash to the index
+            seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
             soup = BeautifulSoup(content, 'html.parser')
 
-            for link in soup.find_all('a'):
+            for link in soup.find_all('a'): #iterates through the links in the webpage
                 tempURL = link.get('href')
 
                 if tempURL:
+
                     clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                     clean_url = defragment_url(clean_url) #removes fragmentation
                     extracted_links.add(clean_url)
@@ -248,7 +242,7 @@ def has_high_content(response):
     if response.raw_response:
         html_content = response.raw_response.content
         max_file_size = 10 * 1024 *1024
-        if len(html_content) > max_file_size:
+        if len(html_content) > max_file_size: #want to avoid large files
             return False
         else :
             soup = BeautifulSoup(html_content, 'html.parser')
@@ -264,7 +258,21 @@ def has_high_content(response):
 
     return False
 
-def is_similar(url):
-    pass
+def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
+    #checks if webpage is near duplicate by using simhashing
+    near_duplicates = simhash_index.get_near_dups(simhash)
+    for near_duplicate in near_duplicates:
+        if simhash.distance(Simhash(near_duplicate)) <= similarity_threshold:
+            return True
+    return False
 
+def calculate_simhash(html_content) :
+    #calculates the sim hash of the html content
+    soup = BeautifulSoup(html_content, "html.parser", from_encoding="utf-8")
+    text_content = soup.get_text()
+    tokens = word_tokenize(text_content.lower())
+    features = Counter(tokens)
+    simhash = Simhash(features)
+    return simhash
+    
 
