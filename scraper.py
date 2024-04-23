@@ -75,8 +75,10 @@ def politeness(url):
             time.sleep(crawl_delay - time_since_last_access)
         return can_crawl    
     else:
+        rp_url = f"{parsed_url.scheme}://{domain}/robots.txt"
+        print("Fetching robots.txt from:", rp_url)
         rp = robotparser.RobotFileParser()
-        rp.set_url(f"{parsed_url.scheme}://{domain}/robots.txt")
+        rp.set_url(rp_url)
         try:
             rp.read()
             # Check if the domain has a robots.txt file
