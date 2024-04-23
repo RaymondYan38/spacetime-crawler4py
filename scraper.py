@@ -77,7 +77,6 @@ def politeness(url):
         return can_crawl    
     else:
         rp_url = f"{parsed_url.scheme}://{domain}/robots.txt"
-        print("Fetching robots.txt from:", rp_url)
         rp = robotparser.RobotFileParser()
         rp.set_url(rp_url)
         try:
@@ -183,6 +182,7 @@ def extract_next_links(url, resp):
         print(resp.error)
         return[]
     elif resp and resp.status in {301, 302}: #handles redirects
+        print("REDIRECT CASE WHEN EXTRACTING LINKS. line 185")
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
