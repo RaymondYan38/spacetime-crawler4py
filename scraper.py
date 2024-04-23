@@ -205,6 +205,8 @@ canonicalization to standardize URLs and avoid crawling the same content multipl
 def canonicalize_url(url):
     # Parse the URL
     parsed = urlparse(url)
+    if not parsed:  # Check if parsed is None
+        return None
     # Remove fragment identifier
     parsed = parsed._replace(fragment='')
     # Decode encoded characters in the path and query
@@ -236,7 +238,7 @@ def canonicalize_url(url):
                              path=quote(normalized_path),  
                              query=sorted_query)
     # Return the canonicalized URL
-    return parsed.geturl()
+    return parsed.geturl() if parsed else None
 
 def is_valid(url):
     try:
