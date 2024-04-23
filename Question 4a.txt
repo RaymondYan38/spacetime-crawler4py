@@ -1,0 +1,2 @@
+Subdomains in ics.uci.edu and number of unique pages: www.ics.uci.edu -> 1
+www.informatics.uci.edu -> 1

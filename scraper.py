@@ -11,6 +11,7 @@ import logging
 import logging.config
 import hashlib
 import nltk
+nltk.download('punkt')
 from nltk.tokenize import word_tokenize
 nltk.download('stopwords')
 from nltk.corpus import stopwords
@@ -33,6 +34,7 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 # self.save in frontier.py should have the answer to report Q1
 
 longest_page = [None, float("-inf")]
+simhash = Simhash(features)
 
 DEFAULT_CRAWL_DELAY = 1
 
@@ -132,6 +134,8 @@ def politeness(url):
     return can_crawl
 
 def extract_next_links(url, resp):
+    global longest_page
+    global simhash
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -155,13 +159,14 @@ def extract_next_links(url, resp):
             soup = BeautifulSoup(content, "html.parser", from_encoding="utf-8")
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
-            tokens_without_stop_words = [token for token in tokens if token not in stopwords and len(token) >= 2]
+            sw = stopwords.words('english')
+            tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
             valid_tokens_len = len(tokens)
             longest_page = [url, valid_tokens_len] if valid_tokens_len > longest_page[1] else longest_page
             for token in tokens_without_stop_words:
                 word_to_occurances[token] += 1
             features = Counter(tokens)
-            simhash = Simhash(features)
+            
 
             # Check if we have already seen this content or if it is near duplicat
             if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
