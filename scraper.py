@@ -296,9 +296,9 @@ def has_high_content(html_content):
         soup = BeautifulSoup(html_content, 'html.parser')
         text = soup.get_text()
         word_count = len(text.split())
-        tag_count = len(soup.find_all())
-        threshold = 5
-        return (word_count/tag_count) > threshold
+        # tag_count = len(soup.find_all())
+        threshold = 50
+        return word_count > threshold
 
 def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
     #checks if webpage is near duplicate by using simhashing
