@@ -1,12 +1,54 @@
 import re
 from urllib.parse import urlparse, urlunparse, urljoin
+from urllib import robotparser
 from bs4 import BeautifulSoup
 
 uniqueURLS = set()
+robotstxtdict = {}
 
 def scraper(url, resp):
-    links = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)]
+    can_crawl = politeness(url) 
+    if can_crawl:
+        links = extract_next_links(url, resp)
+        return [link for link in links if is_valid(link)]
+    else:
+        return []
+
+def politeness(url):
+    parsed_url = urlparse(url)
+    domain = parsed_url.hostname
+    can_crawl = True
+
+    # Check if the main domain's robots.txt has already been checked
+    if domain in robotstxtdict:
+        # Check if the current URL is in the list of subdomains that can't be crawled
+        if url in robotstxtdict[domain]['subdomains']:
+            can_crawl = False
+            return can_crawl
+        
+        crawl_delay = robotstxtdict[domain]['crawl_delay']
+    else:
+        rp = robotparser.RobotFileParser()
+        rp.set_url(f"{parsed_url.scheme}://{domain}/robots.txt")
+        
+        try:
+            rp.read()
+            # Check if the domain has a robots.txt file
+            if not rp.can_fetch("*", url):
+                can_crawl = False
+                return can_crawl
+            
+            crawl_delay = rp.crawl_delay("*")
+            # Cache the crawl delay and subdomains in robotstxtdict
+            robotstxtdict[domain] = {
+                'crawl_delay': crawl_delay,
+                'subdomains': set()
+            }
+        except Exception as e:
+            # Handle exceptions, e.g., network errors, missing robots.txt
+            pass
+
+    return can_crawl
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -19,6 +61,7 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     extracted_links = []
+    base_url = resp.request.url #original url of the pages
 
     if resp.status == 200 and has_high_content(resp): #checks for valid response and if it has enough textual content
         
@@ -26,15 +69,17 @@ def extract_next_links(url, resp):
         for link in soup.find_all('a'):
             tempURL = link.get('href')
             if tempURL:
-                clean_url = defragment_url(tempURL) #removes fragmentation
+                clean_url = urljoin(base_url, tempURL) #resolves relative URLs
+                clean_url = defragment_url(clean_url) #removes fragmentation
+
                 if clean_url not in extracted_links:
                     extracted_links.append(clean_url)
 
-    if resp.status == 302 or resp.status == 301: #handles directs
+    if resp.status == 302 or resp.status == 301: #handles redirects
         location_header = resp.headers.get('Location')
         if location_header:
-            redirect_url = urljoin(url, location_header)
-            if is_valid(redirect_url):
+            redirect_url = urljoin(base_url, location_header)
+            if is_valid(redirect_url) and has_high_content(redirect_url):
                 extracted_links.append(redirect_url)
 
     return extracted_links
