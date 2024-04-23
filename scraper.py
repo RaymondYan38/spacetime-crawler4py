@@ -149,6 +149,8 @@ def extract_next_links(url, resp):
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
             tokens_without_stop_words = [token for token in tokens if token not in stopwords and len(token) >= 2]
+            valid_tokens_len = len(tokens)
+            longest_page = [url, valid_tokens_len] if valid_tokens_len > longest_page[1] else longest_page
             for token in tokens_without_stop_words:
                 word_to_occurances[token] += 1
             features = Counter(tokens)
