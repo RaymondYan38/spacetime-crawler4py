@@ -53,6 +53,7 @@ def scraper(url, resp):
         links = extract_next_links(url, resp)
         return [link for link in links if is_valid(link)]
     else:
+        print(f"politeness is false for this url: {url}")
         return []
     
 
@@ -63,9 +64,9 @@ def politeness(url):
     # Check if the main domain's robots.txt has already been checked
     if domain in robotstxtdict:
         # Check if the current URL is in the disallowed subdomains that can't be crawled
-        if url in robotstxtdict[domain]['disallowed']:
-            can_crawl = False
-            return can_crawl 
+        # if url in robotstxtdict[domain]['disallowed']:
+        #     can_crawl = False
+        #     return can_crawl 
         current_time = time.time()
         last_access = last_access_time[domain]
         time_since_last_access = current_time - last_access
@@ -75,33 +76,38 @@ def politeness(url):
             time.sleep(crawl_delay - time_since_last_access)
         return can_crawl    
     else:
+        rp_url = f"{parsed_url.scheme}://{domain}/robots.txt"
         rp = robotparser.RobotFileParser()
-        rp.set_url(f"{parsed_url.scheme}://{domain}/robots.txt")
+        rp.set_url(rp_url)
         try:
             rp.read()
             # Check if the domain has a robots.txt file
             if not rp.can_fetch("*", url):
+                print("Failing in this conditional on line 85: if not rp.can_fetch("*", url):")
                 can_crawl = False
                 return can_crawl
             crawl_delay = rp.crawl_delay("*")
             # Cache the crawl delay and disallowed subdomains in robotstxtdict
             robotstxtdict[domain] = {
                 'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
-                'disallowed': set(rp.disallowed("*")),  # Store all disallowed subdomains
-                'allowed': set(rp.allowed("*"))  # Store all allowed subdomains
             }
+            # robotstxtdict[domain] = {
+            #     'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
+            #     'disallowed': set(rp.disallowed("*")),  # Store all disallowed subdomains
+            #     'allowed': set(rp.allowed("*"))  # Store all allowed subdomains
+            # }
             # Check if the URL matches any disallowed patterns
-            for pattern in robotstxtdict[domain]['disallowed']:
-                # Convert wildcard pattern to regex and match against the URL
-                if '*' in pattern:
-                    regex_pattern = re.escape(pattern).replace(r'\*', '.*')
-                    if re.match(regex_pattern, url):
-                        can_crawl = False
-                        break
-                elif url.startswith(pattern):
-                    # Check if the URL starts with the disallowed pattern
-                    can_crawl = False
-                    break
+            # for pattern in robotstxtdict[domain]['disallowed']:
+            #     # Convert wildcard pattern to regex and match against the URL
+            #     if '*' in pattern:
+            #         regex_pattern = re.escape(pattern).replace(r'\*', '.*')
+            #         if re.match(regex_pattern, url):
+            #             can_crawl = False
+            #             break
+            #     elif url.startswith(pattern):
+            #         # Check if the URL starts with the disallowed pattern
+            #         can_crawl = False
+            #         break
         except HTTPError as e:
             if e.code == 404:
                 # File not found, allow crawling by default
@@ -137,9 +143,10 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
     extracted_links = set()
-    base_url = resp.request.url #original url of the pages
+    base_url = resp.url #original url of the pages
 
     if resp.status == 200 and resp.raw_response.content: #checks for valid response 
+        print("In this case:  if resp.status == 200 and resp.raw_response.content. line 148")
         content = resp.raw_response.content
         if has_high_content(content):
         # Generate a hash of the content for exact duplicate detection
@@ -166,17 +173,25 @@ def extract_next_links(url, resp):
                         clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                         clean_url = defragment_url(clean_url) #removes fragmentation
                         extracted_links.add(clean_url)
+        else:
+            print(f"This url DO NOT HAVE HIGH CONTENT SO WE IGNORE: {url}")
                         
     elif resp is None or resp.raw_response is None:
+        print("In this case: resp is None or resp.raw_response is None. line 176")
+        print(f"One of these must be true in this case: resp is None: {resp is None} or resp.raw_response is None: {resp.raw_response is None}")
         return []
-    elif resp.status != 200 and resp.status != 301 and resp.status != 302:
+    elif resp.status not in {200, 301, 302}:
+        print("In this case: resp.status not in {200, 301, 302}. line 180")
         print(resp.error)
         return[]
-    elif resp and (resp.status == 302 or resp.status == 301): #handles redirects
+    elif resp and resp.status in {301, 302}: #handles redirects
+        print("REDIRECT CASE WHEN EXTRACTING LINKS. line 185")
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
             extracted_links.add(redirect_url)
+    extracted_links = list(extracted_links)
+    print(f"EXTRACTED LINKS: {extracted_links}")
     return extracted_links
 
 """URLs can represent the same page in multiple ways. For example, http://example.com, 
@@ -239,22 +254,22 @@ def is_valid(url):
         if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
             logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
             return False
-        domain = parsed.hostname
-        if domain in robotstxtdict:
-            for pattern in robotstxtdict[domain]['disallowed']:
-                if '*' in pattern:
-                    # Convert wildcard pattern to regex
-                    pattern_regex = pattern.replace('*', '.*')
-                    # Add anchors (^ and $) to match from the beginning and end of the path
-                    pattern_regex = '^' + pattern_regex + '$'
-                    if re.match(pattern_regex, parsed.path):
-                        logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
-                        return False
-                else:
-                    # No wildcard, so simply match the pattern
-                    if parsed.path.startswith(pattern):
-                        logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
-                        return False
+        # domain = parsed.hostname
+        # if domain in robotstxtdict:
+        #     for pattern in robotstxtdict[domain]['disallowed']:
+        #         if '*' in pattern:
+        #             # Convert wildcard pattern to regex
+        #             pattern_regex = pattern.replace('*', '.*')
+        #             # Add anchors (^ and $) to match from the beginning and end of the path
+        #             pattern_regex = '^' + pattern_regex + '$'
+        #             if re.match(pattern_regex, parsed.path):
+        #                 logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
+        #                 return False
+        #         else:
+        #             # No wildcard, so simply match the pattern
+        #             if parsed.path.startswith(pattern):
+        #                 logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
+        #                 return False
         for rule in exclusion_rules:
             if re.search(rule, parsed.geturl()):
                 logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
@@ -281,9 +296,9 @@ def has_high_content(html_content):
         soup = BeautifulSoup(html_content, 'html.parser')
         text = soup.get_text()
         word_count = len(text.split())
-        tag_count = len(soup.find_all())
+        # tag_count = len(soup.find_all())
         threshold = 50
-        return (word_count/tag_count) > threshold
+        return word_count > threshold
 
 def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
     #checks if webpage is near duplicate by using simhashing
