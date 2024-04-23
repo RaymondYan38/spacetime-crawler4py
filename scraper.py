@@ -190,6 +190,7 @@ def extract_next_links(url, resp):
         if location_header:
             redirect_url = urljoin(base_url, location_header)
             extracted_links.add(redirect_url)
+    extracted_links = list(extracted_links)
     print(f"EXTRACTED LINKS: {extracted_links}")
     return extracted_links
 
@@ -296,7 +297,7 @@ def has_high_content(html_content):
         text = soup.get_text()
         word_count = len(text.split())
         tag_count = len(soup.find_all())
-        threshold = 20
+        threshold = 5
         return (word_count/tag_count) > threshold
 
 def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
