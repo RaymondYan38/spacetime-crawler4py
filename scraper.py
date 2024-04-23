@@ -146,6 +146,7 @@ def extract_next_links(url, resp):
     base_url = resp.url #original url of the pages
 
     if resp.status == 200 and resp.raw_response.content: #checks for valid response 
+        print("In this case:  if resp.status == 200 and resp.raw_response.content. line 148")
         content = resp.raw_response.content
         if has_high_content(content):
         # Generate a hash of the content for exact duplicate detection
