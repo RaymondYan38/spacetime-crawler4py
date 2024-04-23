@@ -173,6 +173,8 @@ def extract_next_links(url, resp):
                         clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                         clean_url = defragment_url(clean_url) #removes fragmentation
                         extracted_links.add(clean_url)
+        else:
+            print(f"This url DO NOT HAVE HIGH CONTENT SO WE IGNORE: {url}")
                         
     elif resp is None or resp.raw_response is None:
         print("In this case: resp is None or resp.raw_response is None. line 176")
