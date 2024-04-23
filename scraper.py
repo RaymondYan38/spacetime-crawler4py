@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -16,15 +16,14 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     extracted_links = []
-    if resp.status == 200:
-        if resp.raw_response:
-            soup = BeautifulSoup(resp.raw_response, 'html.parser')
-            # need to filter the ics urls
-            for link in soup.find_all('a'):
-                href = link.get('href')
-                extracted_links.append(href)
-                # need to defragment the url
-
+    if resp.status == 200 and has_high_content(resp):
+        
+        soup = BeautifulSoup(resp.raw_response, 'html.parser')
+        for link in soup.find_all('a'):
+            href = link.get('href')
+            extracted_links.append(href)
+    if resp.status == 302 or resp.status == 301:
+        pass
     return extracted_links
 
 def is_valid(url):
@@ -32,19 +31,50 @@ def is_valid(url):
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
-        parsed = urlparse(url)
-        if parsed.scheme not in set(["http", "https"]):
+        new_url = defragment_url(url)
+        valid_domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
+        valid_paths = ["/"]
+
+        if new_url.scheme not in set(["http", "https"]):
             return False
-        return not re.match(
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+        
+        if new_url.netloc.endswith(tuple(valid_domains)) and any(new_url.path.startswith(path) for path in valid_paths):
+
+            if re.match(
+                r".*\.(css|js|bmp|gif|jpe?g|ico"
+                + r"|png|tiff?|mid|mp2|mp3|mp4"
+                + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+                + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+                + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+                + r"|epub|dll|cnf|tgz|sha1"
+                + r"|thmx|mso|arff|rtf|jar|csv"
+                + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", new_url.path.lower()):
+                return False
+            return True
 
     except TypeError:
-        print ("TypeError for ", parsed)
+        print ("TypeError for ", new_url)
         raise
+
+def defragment_url(url):
+    parsed_url = urlparse(url)
+    cleaned_url = parsed_url._replace(fragment='')
+    return urlunparse(cleaned_url)
+
+
+def has_high_content(response):
+
+    if response.raw_response:
+        html_content = response.raw_response.content
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        text = soup.get_text()
+        word_count = len(text.split())
+        tag_count = tag_count = len(soup.find_all())
+
+        threshold = 50
+
+        return (word_count/tag_count) > 50
+        
+
+    return False
