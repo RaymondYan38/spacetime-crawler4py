@@ -187,6 +187,7 @@ def extract_next_links(url, resp):
         if location_header:
             redirect_url = urljoin(base_url, location_header)
             extracted_links.add(redirect_url)
+    print(f"EXTRACTED LINKS: {extracted_links}")
     return extracted_links
 
 """URLs can represent the same page in multiple ways. For example, http://example.com, 
