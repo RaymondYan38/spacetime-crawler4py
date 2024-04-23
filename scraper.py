@@ -86,12 +86,23 @@ def politeness(url):
                 print("Failing in this conditional on line 85: if not rp.can_fetch("*", url):")
                 can_crawl = False
                 return can_crawl
-            crawl_delay = rp.crawl_delay("*")
-            # Cache the crawl delay and disallowed subdomains in robotstxtdict
+            
+            # Extract Disallow and Allow directives
+            disallowed_paths = set()
+            allowed_paths = set()
+            for line in rp.original().splitlines():
+                if line.strip():
+                    directive, value = line.split(":", 1)
+                    if directive.strip().lower() == "disallow":
+                        disallowed_paths.add(value.strip())
+                    elif directive.strip().lower() == "allow":
+                        allowed_paths.add(value.strip())
+
+            # Store disallowed and allowed paths in robotstxtdict
             robotstxtdict[domain] = {
-                'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
-                'disallowed': set(rp.disallowed("*")),  # Store all disallowed subdomains
-                'allowed': set(rp.allowed("*"))  # Store all allowed subdomains
+                'crawl_delay': rp.crawl_delay("*") if rp.crawl_delay("*") else DEFAULT_CRAWL_DELAY,
+                'disallowed': disallowed_paths,
+                'allowed': allowed_paths
             }
             # Check if the URL matches any disallowed patterns
             for pattern in robotstxtdict[domain]['disallowed']:
