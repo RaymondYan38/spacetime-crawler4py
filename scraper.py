@@ -14,8 +14,8 @@ import nltk
 nltk.download('punkt')
 from nltk.tokenize import word_tokenize
 nltk.download('stopwords')
-sw = stopwords.words('english')
 from nltk.corpus import stopwords
+sw = stopwords.words('english')
 from collections import Counter
 from simhash import Simhash, SimhashIndex
 
