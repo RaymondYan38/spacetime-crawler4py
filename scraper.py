@@ -63,9 +63,9 @@ def politeness(url):
     # Check if the main domain's robots.txt has already been checked
     if domain in robotstxtdict:
         # Check if the current URL is in the disallowed subdomains that can't be crawled
-        if url in robotstxtdict[domain]['disallowed']:
-            can_crawl = False
-            return can_crawl 
+        # if url in robotstxtdict[domain]['disallowed']:
+        #     can_crawl = False
+        #     return can_crawl 
         current_time = time.time()
         last_access = last_access_time[domain]
         time_since_last_access = current_time - last_access
@@ -86,36 +86,28 @@ def politeness(url):
                 print("Failing in this conditional on line 85: if not rp.can_fetch("*", url):")
                 can_crawl = False
                 return can_crawl
-            
-            # Extract Disallow and Allow directives
-            disallowed_paths = set()
-            allowed_paths = set()
-            for line in rp.original().splitlines():
-                if line.strip():
-                    directive, value = line.split(":", 1)
-                    if directive.strip().lower() == "disallow":
-                        disallowed_paths.add(value.strip())
-                    elif directive.strip().lower() == "allow":
-                        allowed_paths.add(value.strip())
-
-            # Store disallowed and allowed paths in robotstxtdict
+            crawl_delay = rp.crawl_delay("*")
+            # Cache the crawl delay and disallowed subdomains in robotstxtdict
             robotstxtdict[domain] = {
-                'crawl_delay': rp.crawl_delay("*") if rp.crawl_delay("*") else DEFAULT_CRAWL_DELAY,
-                'disallowed': disallowed_paths,
-                'allowed': allowed_paths
+                'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
             }
+            # robotstxtdict[domain] = {
+            #     'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
+            #     'disallowed': set(rp.disallowed("*")),  # Store all disallowed subdomains
+            #     'allowed': set(rp.allowed("*"))  # Store all allowed subdomains
+            # }
             # Check if the URL matches any disallowed patterns
-            for pattern in robotstxtdict[domain]['disallowed']:
-                # Convert wildcard pattern to regex and match against the URL
-                if '*' in pattern:
-                    regex_pattern = re.escape(pattern).replace(r'\*', '.*')
-                    if re.match(regex_pattern, url):
-                        can_crawl = False
-                        break
-                elif url.startswith(pattern):
-                    # Check if the URL starts with the disallowed pattern
-                    can_crawl = False
-                    break
+            # for pattern in robotstxtdict[domain]['disallowed']:
+            #     # Convert wildcard pattern to regex and match against the URL
+            #     if '*' in pattern:
+            #         regex_pattern = re.escape(pattern).replace(r'\*', '.*')
+            #         if re.match(regex_pattern, url):
+            #             can_crawl = False
+            #             break
+            #     elif url.startswith(pattern):
+            #         # Check if the URL starts with the disallowed pattern
+            #         can_crawl = False
+            #         break
         except HTTPError as e:
             if e.code == 404:
                 # File not found, allow crawling by default
@@ -253,22 +245,22 @@ def is_valid(url):
         if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
             logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
             return False
-        domain = parsed.hostname
-        if domain in robotstxtdict:
-            for pattern in robotstxtdict[domain]['disallowed']:
-                if '*' in pattern:
-                    # Convert wildcard pattern to regex
-                    pattern_regex = pattern.replace('*', '.*')
-                    # Add anchors (^ and $) to match from the beginning and end of the path
-                    pattern_regex = '^' + pattern_regex + '$'
-                    if re.match(pattern_regex, parsed.path):
-                        logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
-                        return False
-                else:
-                    # No wildcard, so simply match the pattern
-                    if parsed.path.startswith(pattern):
-                        logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
-                        return False
+        # domain = parsed.hostname
+        # if domain in robotstxtdict:
+        #     for pattern in robotstxtdict[domain]['disallowed']:
+        #         if '*' in pattern:
+        #             # Convert wildcard pattern to regex
+        #             pattern_regex = pattern.replace('*', '.*')
+        #             # Add anchors (^ and $) to match from the beginning and end of the path
+        #             pattern_regex = '^' + pattern_regex + '$'
+        #             if re.match(pattern_regex, parsed.path):
+        #                 logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
+        #                 return False
+        #         else:
+        #             # No wildcard, so simply match the pattern
+        #             if parsed.path.startswith(pattern):
+        #                 logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
+        #                 return False
         for rule in exclusion_rules:
             if re.search(rule, parsed.geturl()):
                 logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
