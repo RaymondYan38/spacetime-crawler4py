@@ -203,6 +203,7 @@ http://example.com/, http://example.com/index.html, and http://example.com/? cou
 canonicalization to standardize URLs and avoid crawling the same content multiple times.
 """
 def canonicalize_url(url):
+    print("URL in canonicalize_url for debugging pruporses:", url)
     # Parse the URL
     parsed = urlparse(url)
     if not parsed:  # Check if parsed is None
