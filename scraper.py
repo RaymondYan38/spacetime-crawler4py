@@ -34,7 +34,7 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 # self.save in frontier.py should have the answer to report Q1
 
 longest_page = [None, float("-inf")]
-simhash = Simhash(features)
+simhash_index = SimhashIndex([])
 
 DEFAULT_CRAWL_DELAY = 1
 
@@ -135,7 +135,7 @@ def politeness(url):
 
 def extract_next_links(url, resp):
     global longest_page
-    global simhash
+    global simhash_index
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -155,7 +155,6 @@ def extract_next_links(url, resp):
         if has_high_content(content):
         # Generate a hash of the content for exact duplicate detection
             content_hash = hashlib.sha256(content).hexdigest()
-            simhash_index = SimhashIndex([])
             soup = BeautifulSoup(content, "html.parser", from_encoding="utf-8")
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
@@ -166,7 +165,7 @@ def extract_next_links(url, resp):
             for token in tokens_without_stop_words:
                 word_to_occurances[token] += 1
             features = Counter(tokens)
-            
+            simhash = Simhash(features)
 
             # Check if we have already seen this content or if it is near duplicat
             if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
