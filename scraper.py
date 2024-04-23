@@ -1,7 +1,22 @@
+import os
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode, parse_qsl, quote, unquote
 from bs4 import BeautifulSoup
 from collections import defaultdict
+import logging
+import logging_config
+
+
+NON_HTML_EXTENSIONS_PATTERN = re.compile(
+    r"\.(css|js|bmp|gif|jpe?g|ico"
+    + r"|png|tiff?|mid|mp2|mp3|mp4"
+    + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+    + r"|ps|eps|tex|ppt|pptx|potx|ppsx|sldx|ppam|xlsb|xltx|xltm|xlam|ods|odt|ott|odg|otp|ots|odm|odb"
+    + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+    + r"|epub|dll|cnf|tgz|sha1"
+    + r"|thmx|mso|arff|rtf|jar|csv"
+    + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$"
+)
 
 # self.save in frontier.py should have the answer to report Q1
 
@@ -200,25 +215,56 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     return list()
 
+def canonicalize_url(url):
+    # Parse the URL
+    parsed = urlparse(url)
+    # Remove fragment identifier
+    parsed = parsed._replace(fragment='')
+    # Decode encoded characters in the path and query
+    decoded_path = unquote(parsed.path)
+    decoded_query = unquote(parsed.query)
+    # Check if the port matches the default for the scheme
+    default_ports = {"http": 80, "https": 443}
+    if parsed.port == default_ports.get(parsed.scheme):
+        parsed = parsed._replace(netloc=parsed.hostname)
+    # Add trailing slash if missing and no file extension present
+    if decoded_path and not decoded_path.endswith('/') and not os.path.splitext(decoded_path)[1]:
+        decoded_path += '/' 
+    # Normalize the path by resolving dot-segments
+    normalized_path = os.path.normpath(decoded_path)  
+    # Sort and encode query parameters
+    query_params = parse_qsl(decoded_query)
+    sorted_params = sorted(query_params)
+    sorted_query = urlencode(sorted_params)
+    # Convert scheme and netloc to lowercase
+    parsed = parsed._replace(scheme=parsed.scheme.lower(),
+                             netloc=parsed.netloc.lower(),
+                             path=quote(normalized_path),  
+                             query=sorted_query)
+    # Return the canonicalized URL
+    return parsed.geturl()
+
 def is_valid(url):
     try:
-        parsed = urlparse(url)
+        # Canonicalize the URL
+        canonical_url = canonicalize_url(url)
+        # Parse the canonicalized URL
+        parsed = urlparse(canonical_url)
         if parsed.scheme not in {"http", "https"}:
+            logging.warning(f"URL rejected: {url} - Reason: not HTTP or HTTPS")
             return False
+        valid_domains = [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]
         # Check if the domain is one of the specified domains
-        if not any(parsed.netloc.endswith(domain) for domain in [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]):
+        if not any(parsed.netloc.endswith(domain) for domain in valid_domains):
+            logging.warning(f"URL rejected: {url} - Reason: domain is NOT one of the specified domains")
             return False
+        # Extract the path without query parameters
+        path_without_query = parsed.path.split('?')[0]
         # Check if the path ends with a non-HTML file extension
-        if re.match(
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()):
+        if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
+            logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
             return False
+        logging.info(f"URL accepted: {url}")
         return True
     except TypeError:
         print("TypeError for ", parsed)
