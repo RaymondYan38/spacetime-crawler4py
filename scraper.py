@@ -29,7 +29,7 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
     + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
     + r"|epub|dll|cnf|tgz|sha1"
     + r"|thmx|mso|arff|rtf|jar|csv"
-    + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$"
+    + r"|rm|smil|wmv|swf|wma|zip|rar|gz|json)$"
 )
 
 # self.save in frontier.py should have the answer to report Q1
@@ -243,6 +243,9 @@ def canonicalize_url(url):
 
 def is_valid(url):
     try:
+        if url.startswith("mailto:"):
+            logging.warning(f"URL rejected: {url} - Reason: mailto URL")
+            return False
         # Canonicalize the URL
         canonical_url = canonicalize_url(url)
         # Parse the canonicalized URL
