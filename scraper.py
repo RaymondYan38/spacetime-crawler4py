@@ -15,20 +15,21 @@ nltk.download('punkt')
 from nltk.tokenize import word_tokenize
 nltk.download('stopwords')
 from nltk.corpus import stopwords
+sw = stopwords.words('english')
 from collections import Counter
 from simhash import Simhash, SimhashIndex
 
 seen_fingerprints = set()
 robotstxtdict = {}
 NON_HTML_EXTENSIONS_PATTERN = re.compile(
-    r"\.(css|js|bmp|gif|jpe?g|ico"
+    r"\.(apk|css|js|bmp|gif|jpe?g|ico"
     + r"|png|tiff?|mid|mp2|mp3|mp4"
     + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
     + r"|ps|eps|tex|ppt|pptx|potx|ppsx|sldx|ppam|xlsb|xltx|xltm|xlam|ods|odt|ott|odg|otp|ots|odm|odb"
     + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
     + r"|epub|dll|cnf|tgz|sha1"
     + r"|thmx|mso|arff|rtf|jar|csv"
-    + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$"
+    + r"|rm|smil|wmv|swf|wma|zip|rar|gz|json)$"
 )
 
 # self.save in frontier.py should have the answer to report Q1
@@ -49,10 +50,22 @@ exclusion_rules = [
     # Add more exclusion rules if needed
 ]
 
+def detect_repetitive_pattern(url):
+    # Function to detect repetitive patterns in URLs
+    # For example, if a URL contains repetitive segments like /stayconnected/stayconnected/..., it's likely a trap
+    segments = urlparse(url).path.split('/')
+    # Check if any segment is repeated multiple times
+    for i in range(2, len(segments)):
+        if all(segments[j] == segments[j - 1] for j in range(i, i * 2)):
+            return True
+    return False
+
 def scraper(url, resp):
     can_crawl = politeness(url) 
     if can_crawl:
         links = extract_next_links(url, resp)
+        # Filter out URLs with repetitive patterns
+        links = [link for link in links if not detect_repetitive_pattern(link)]
         return [link for link in links if is_valid(link)]
     else:
         print(f"politeness is false for this url: {url}")
@@ -155,10 +168,9 @@ def extract_next_links(url, resp):
         if has_high_content(content):
         # Generate a hash of the content for exact duplicate detection
             content_hash = hashlib.sha256(content).hexdigest()
-            soup = BeautifulSoup(content, "html.parser", from_encoding="utf-8")
+            soup = BeautifulSoup(content, "html.parser")
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
-            sw = stopwords.words('english')
             tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
             valid_tokens_len = len(tokens)
             longest_page = [url, valid_tokens_len] if valid_tokens_len > longest_page[1] else longest_page
@@ -169,7 +181,7 @@ def extract_next_links(url, resp):
 
             # Check if we have already seen this content or if it is near duplicat
             if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
-                simhash_index.add(simhash) #add simhash to the index
+                simhash_index.add(base_url, simhash) #add simhash to the index
                 seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
                 for link in soup.find_all('a'): #iterates through the links in the webpage
                     tempURL = link.get('href')
@@ -203,8 +215,11 @@ http://example.com/, http://example.com/index.html, and http://example.com/? cou
 canonicalization to standardize URLs and avoid crawling the same content multiple times.
 """
 def canonicalize_url(url):
+    print("URL in canonicalize_url for debugging pruporses:", url)
     # Parse the URL
     parsed = urlparse(url)
+    if not parsed:  # Check if parsed is None
+        return None
     # Remove fragment identifier
     parsed = parsed._replace(fragment='')
     # Decode encoded characters in the path and query
@@ -236,14 +251,27 @@ def canonicalize_url(url):
                              path=quote(normalized_path),  
                              query=sorted_query)
     # Return the canonicalized URL
-    return parsed.geturl()
+    return parsed.geturl() if parsed else None
 
 def is_valid(url):
     try:
+        if url.startswith("mailto:"):
+            logging.warning(f"URL rejected: {url} - Reason: mailto URL")
+            return False
+        if url.startswith("javascript:"):
+            logging.warning(f"URL rejected: {url} - Reason: JavaScript URL")
+            return False
+        if url.startswith("skype:"):
+            logging.warning(f"URL rejected: {url} - Reason: Skype URL")
+            return False
         # Canonicalize the URL
         canonical_url = canonicalize_url(url)
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
+        
+        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path:
+            return False
+        
         if parsed.scheme not in {"http", "https"}:
             logging.warning(f"URL rejected: {url} - Reason: not HTTP or HTTPS")
             return False
@@ -278,7 +306,11 @@ def is_valid(url):
             if re.search(rule, parsed.geturl()):
                 logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
                 return False
-        logging.info(f"URL accepted: {url}")
+        print("------------------------------------------------------------------------")
+        print(f"URL accepted: {url}")
+        # logging.info(f"URL accepted: {url}")
+        print("------------------------------------------------------------------------")
+        
         return True
     except TypeError:
         print("TypeError for ", parsed)
@@ -300,7 +332,7 @@ def has_high_content(html_content):
         soup = BeautifulSoup(html_content, 'html.parser')
         text = soup.get_text()
         word_count = len(text.split())
-        # tag_count = len(soup.find_all())
+        
         threshold = 50
         return word_count > threshold
 
