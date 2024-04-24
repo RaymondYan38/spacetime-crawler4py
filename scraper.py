@@ -36,7 +36,7 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 
 longest_page = [None, float("-inf")]
 simhash_index = SimhashIndex([])
-
+visited_url = set()
 DEFAULT_CRAWL_DELAY = 1
 
 word_to_occurances = defaultdict(int)
@@ -297,7 +297,7 @@ def is_valid(url):
             logging.warning(f"URL rejected: {url} - Reason: domain is NOT one of the specified domains")
             return False
         # Extract the path without query parameters
-        path_without_query = parsed.path.split('?')[0]
+        # path_without_query = parsed.path.split('?')[0]
         # Check if the path ends with a non-HTML file extension
         
         # ----------------------OLD REGEX STUFF ----------------------
@@ -329,6 +329,11 @@ def is_valid(url):
             if re.search(rule, parsed.geturl()):
                 logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
                 return False
+
+        if parsed.geturl() in visited_url:
+            return False
+        else:
+            visited_url.add(parsed.geturl())
         print("------------------------------------------------------------------------")
         print(f"URL accepted: {url}")
         # logging.info(f"URL accepted: {url}")
