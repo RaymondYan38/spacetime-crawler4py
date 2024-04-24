@@ -56,7 +56,7 @@ def detect_repetitive_pattern(url):
     segments = urlparse(url).path.split('/')
     # Check if any segment is repeated multiple times
     for i in range(2, len(segments)):
-        if all(segments[j] == segments[j - 1] for j in range(i, i * 2)):
+        if all(j < len(segments) and segments[j] == segments[j - 1] for j in range(i, i * 2)):
             return True
     return False
 
