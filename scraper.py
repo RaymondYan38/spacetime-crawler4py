@@ -255,14 +255,8 @@ def canonicalize_url(url):
 
 def is_valid(url):
     try:
-        if url.startswith("mailto:"):
-            logging.warning(f"URL rejected: {url} - Reason: mailto URL")
-            return False
-        if url.startswith("javascript:"):
-            logging.warning(f"URL rejected: {url} - Reason: JavaScript URL")
-            return False
-        if url.startswith("skype:"):
-            logging.warning(f"URL rejected: {url} - Reason: Skype URL")
+        if url.startswith("mailto:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:"):
+            logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
             return False
         # Canonicalize the URL
         canonical_url = canonicalize_url(url)
@@ -287,9 +281,16 @@ def is_valid(url):
         print(f"path_without_query: {parsed.path.split('?')[0]}")
         print("\n")
         # Check if the path ends with a non-HTML file extension
-        if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
-            logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
+        
+        # ----------------------OLD REGEX STUFF ----------------------
+        # if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
+        #     logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
+        #     return False
+        # ----------------------OLD REGEX STUFF ----------------------
+        if NON_HTML_EXTENSIONS_PATTERN.search(parsed.geturl().lower()):
+            logging.warning(f"URL rejected: {url} - Reason: URL ends with a non-HTML file extension")
             return False
+        
         # domain = parsed.hostname
         # if domain in robotstxtdict:
         #     for pattern in robotstxtdict[domain]['disallowed']:
@@ -329,7 +330,7 @@ def has_high_content(html_content):
 
     """checks if response has enough textual content by comparing the word to html tag ratio to a given threshold"""
         
-    max_file_size = 10 * 1024 *1024
+    max_file_size = 2 * 1024 *1024
     if len(html_content) > max_file_size: #want to avoid large files
         return False
     else :
