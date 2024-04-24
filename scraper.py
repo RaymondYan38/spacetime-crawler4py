@@ -284,7 +284,7 @@ def is_valid(url):
             return False
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
-        
+        print(f"THING YOU WANT TO SEE FOR DOKU: {parsed.path}")
         if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path:
             return False
         
@@ -338,7 +338,6 @@ def is_valid(url):
         print("------------------------------------------------------------------------")
         print(f"URL accepted: {url}")
         print(f"This is the parsed.geturl() version of the url: {parsed.geturl()}")
-        # logging.info(f"URL accepted: {url}")
         print("------------------------------------------------------------------------")
         
         return True
