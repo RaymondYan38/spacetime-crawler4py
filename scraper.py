@@ -325,6 +325,12 @@ def is_valid(url):
         #             if parsed.path.startswith(pattern):
         #                 logging.warning(f"URL rejected: {url} - Reason: matches disallowed pattern in robots.txt")
         #                 return False
+        # Check if the path length exceeds the threshold
+        max_path_length = 10
+        if len(parsed.path.split('/')) > max_path_length:
+            logging.warning(f"URL rejected: {url} - Reason: path length exceeds threshold")
+            return False
+        
         for rule in exclusion_rules:
             if re.search(rule, parsed.geturl()):
                 logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
