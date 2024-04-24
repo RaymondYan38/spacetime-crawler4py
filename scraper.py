@@ -196,7 +196,7 @@ def extract_next_links(url, resp):
                     if tempURL:
                         clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                         clean_url = defragment_url(clean_url) #removes fragmentation
-                        print("ADDING URL: {clean_url} to extract_links")
+                        print(f"ADDING URL: {clean_url} to extract_links")
                         extracted_links.add(clean_url)
             else:
                 print("DUPLICATE DETECTED FROM THIS CONDITIONAL: if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):")
