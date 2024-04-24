@@ -285,7 +285,7 @@ def is_valid(url):
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
         
-        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path:
+        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php':
             return False
         
         if parsed.scheme not in {"http", "https"}:
@@ -331,11 +331,13 @@ def is_valid(url):
                 return False
 
         if parsed.geturl() in visited_url:
+            print(f"REPEATED URL IS FOUND: {url}. NOT ADDING REPEATED URL!!!")
             return False
         else:
             visited_url.add(parsed.geturl())
         print("------------------------------------------------------------------------")
         print(f"URL accepted: {url}")
+        print(f"This is the parsed.geturl() version of the url: {parsed.geturl()}")
         # logging.info(f"URL accepted: {url}")
         print("------------------------------------------------------------------------")
         
