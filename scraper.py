@@ -180,7 +180,7 @@ def extract_next_links(url, resp):
                     if tempURL:
                         clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                         clean_url = defragment_url(clean_url) #removes fragmentation
-                        print("ADDING URL: {clean_url} to extract_links")
+                        print(f"ADDING URL: {clean_url} to extract_links")
                         extracted_links.add(clean_url)
             else:
                 print("DUPLICATE DETECTED FROM THIS CONDITIONAL: if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):")
@@ -254,6 +254,7 @@ def canonicalize_url(url):
         return parsed.geturl() if parsed else None
     except Exception as e:
         print(f"Error canonicalizing URL: {url}: {e}")
+        return None
 
 def is_valid(url):
     try:
@@ -268,6 +269,9 @@ def is_valid(url):
             return False
         # Canonicalize the URL
         canonical_url = canonicalize_url(url)
+        if canonical_url is None:
+            logging.warning(f"URL could not be accessed: {url}")
+            return False
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
         
@@ -295,7 +299,7 @@ def is_valid(url):
                 return False
         print("------------------------------------------------------------------------")
         print(f"URL accepted: {url}")
-        # logging.info(f"URL accepted: {url}")
+        
         print("------------------------------------------------------------------------")
         
         return True
@@ -318,12 +322,17 @@ def has_high_content(html_content):
     else :
         soup = BeautifulSoup(html_content, 'html.parser')
         text = soup.get_text()
+        text_length = len(text)
+        total_length = len(str(soup))
+        text_to_html_ratio = text_length / total_length
         word_count = len(text.split())
-        
-        threshold = 50
-        return word_count > threshold
 
-def is_near_duplicate(simhash, simhash_index, similarity_threshold = 5):
+        headers = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+        paragraphs = soup.find_all('p')
+        
+        return word_count >= 100 or text_to_html_ratio >= 0.25 or len(headers) >= 3 or len(paragraphs) >= 5
+
+def is_near_duplicate(simhash, simhash_index, similarity_threshold = 2):
     #checks if webpage is near duplicate by using simhashing
     near_duplicates = simhash_index.get_near_dups(simhash)
 
