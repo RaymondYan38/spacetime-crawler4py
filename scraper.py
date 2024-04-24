@@ -306,7 +306,11 @@ def is_valid(url):
             if re.search(rule, parsed.geturl()):
                 logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
                 return False
-        logging.info(f"URL accepted: {url}")
+        print("------------------------------------------------------------------------")
+        print(f"URL accepted: {url}")
+        # logging.info(f"URL accepted: {url}")
+        print("------------------------------------------------------------------------")
+        
         return True
     except TypeError:
         print("TypeError for ", parsed)
