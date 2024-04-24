@@ -270,6 +270,7 @@ def canonicalize_url(url):
         return parsed.geturl() if parsed else None
     except Exception as e:
         print(f"Error canonicalizing URL: {url}: {e}")
+        return None
 
 def is_valid(url):
     try:
@@ -278,6 +279,9 @@ def is_valid(url):
             return False
         # Canonicalize the URL
         canonical_url = canonicalize_url(url)
+        if canonical_url is None:
+            logging.warning(f"URL could not be accessed: {url}")
+            return False
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
         
