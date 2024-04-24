@@ -164,6 +164,7 @@ def extract_next_links(url, resp):
 
             # Check if we have already seen this content or if it is near duplicate
             if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
+                print("NEW PAGE FOUND!!! This condition has been met: if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):")
                 #tokenize and track word occurences for report
                 tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
                 valid_tokens_len = len(tokens)
@@ -179,7 +180,11 @@ def extract_next_links(url, resp):
                     if tempURL:
                         clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                         clean_url = defragment_url(clean_url) #removes fragmentation
+                        print("ADDING URL: {clean_url} to extract_links")
                         extracted_links.add(clean_url)
+            else:
+                print("DUPLICATE DETECTED FROM THIS CONDITIONAL: if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):")
+                        
         else:
             print(f"This url DO NOT HAVE HIGH CONTENT SO WE IGNORE: {url}")
                         
@@ -191,6 +196,8 @@ def extract_next_links(url, resp):
         print("In this case: resp.status not in {200, 301, 302}. line 180")
         print(resp.error)
         return[]
+    elif not (url == resp.raw_response.url):
+        return [resp.raw_response.url]
     elif resp and resp.status in {301, 302}: #handles redirects
         print("REDIRECT CASE WHEN EXTRACTING LINKS. line 185")
         location_header = resp.headers.get('Location')
@@ -198,6 +205,7 @@ def extract_next_links(url, resp):
             redirect_url = urljoin(base_url, location_header)
             extracted_links.add(redirect_url)
     extracted_links = list(extracted_links)
+    
     print(f"EXTRACTED LINKS: {extracted_links}")
     return extracted_links
 
@@ -315,7 +323,7 @@ def has_high_content(html_content):
         threshold = 50
         return word_count > threshold
 
-def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
+def is_near_duplicate(simhash, simhash_index, similarity_threshold = 5):
     #checks if webpage is near duplicate by using simhashing
     near_duplicates = simhash_index.get_near_dups(simhash)
 
