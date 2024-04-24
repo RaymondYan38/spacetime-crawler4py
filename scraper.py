@@ -285,7 +285,7 @@ def is_valid(url):
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
         
-        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php':
+        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path:
             return False
         
         if parsed.scheme not in {"http", "https"}:
