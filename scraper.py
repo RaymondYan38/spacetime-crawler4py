@@ -249,10 +249,17 @@ def is_valid(url):
         if url.startswith("javascript:"):
             logging.warning(f"URL rejected: {url} - Reason: JavaScript URL")
             return False
+        if url.startswith("skype:"):
+            logging.warning(f"URL rejected: {url} - Reason: Skype URL")
+            return False
         # Canonicalize the URL
         canonical_url = canonicalize_url(url)
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
+        
+        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path:
+            return False
+        
         if parsed.scheme not in {"http", "https"}:
             logging.warning(f"URL rejected: {url} - Reason: not HTTP or HTTPS")
             return False
