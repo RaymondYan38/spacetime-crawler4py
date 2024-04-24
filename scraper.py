@@ -22,7 +22,7 @@ from simhash import Simhash, SimhashIndex
 seen_fingerprints = set()
 robotstxtdict = {}
 NON_HTML_EXTENSIONS_PATTERN = re.compile(
-    r"\.(css|js|bmp|gif|jpe?g|ico"
+    r"\.(apk|css|js|bmp|gif|jpe?g|ico"
     + r"|png|tiff?|mid|mp2|mp3|mp4"
     + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
     + r"|ps|eps|tex|ppt|pptx|potx|ppsx|sldx|ppam|xlsb|xltx|xltm|xlam|ods|odt|ott|odg|otp|ots|odm|odb"
@@ -50,10 +50,22 @@ exclusion_rules = [
     # Add more exclusion rules if needed
 ]
 
+def detect_repetitive_pattern(url):
+    # Function to detect repetitive patterns in URLs
+    # For example, if a URL contains repetitive segments like /stayconnected/stayconnected/..., it's likely a trap
+    segments = urlparse(url).path.split('/')
+    # Check if any segment is repeated multiple times
+    for i in range(2, len(segments)):
+        if all(segments[j] == segments[j - 1] for j in range(i, i * 2)):
+            return True
+    return False
+
 def scraper(url, resp):
     can_crawl = politeness(url) 
     if can_crawl:
         links = extract_next_links(url, resp)
+        # Filter out URLs with repetitive patterns
+        links = [link for link in links if not detect_repetitive_pattern(link)]
         return [link for link in links if is_valid(link)]
     else:
         print(f"politeness is false for this url: {url}")
@@ -156,7 +168,7 @@ def extract_next_links(url, resp):
         if has_high_content(content):
         # Generate a hash of the content for exact duplicate detection
             content_hash = hashlib.sha256(content).hexdigest()
-            soup = BeautifulSoup(content, "html.parser", from_encoding="utf-8")
+            soup = BeautifulSoup(content, "html.parser")
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
             tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
