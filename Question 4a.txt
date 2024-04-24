@@ -1,2 +1,31 @@
-Subdomains in ics.uci.edu and number of unique pages: www.ics.uci.edu -> 1
-www.informatics.uci.edu -> 1
+Subdomains in ics.uci.edu and number of unique pages: aiclub.ics.uci.edu -> 1
+archive.ics.uci.edu -> 1
+cgvw.ics.uci.edu -> 1
+code.ics.uci.edu -> 1
+cwicsocal18.ics.uci.edu -> 1
+cyberclub.ics.uci.edu -> 1
+dgillen.ics.uci.edu -> 1
+duttgroup.ics.uci.edu -> 45
+futurehealth.ics.uci.edu -> 1
+honors.ics.uci.edu -> 1
+iasl.ics.uci.edu -> 2
+industryshowcase.ics.uci.edu -> 1
+intranet.ics.uci.edu -> 1
+jgarcia.ics.uci.edu -> 1
+luci.ics.uci.edu -> 1
+malek.ics.uci.edu -> 1
+mcs.ics.uci.edu -> 1
+mds.ics.uci.edu -> 1
+mhcid.ics.uci.edu -> 1
+mse.ics.uci.edu -> 1
+mswe.ics.uci.edu -> 12
+ngs.ics.uci.edu -> 1
+sdcl.ics.uci.edu -> 4
+statconsulting.ics.uci.edu -> 5
+swiki.ics.uci.edu -> 1
+transformativeplay.ics.uci.edu -> 19
+ugradforms.ics.uci.edu -> 1
+unite.ics.uci.edu -> 1
+wics.ics.uci.edu -> 345
+www.ics.uci.edu -> 359
+www.informatics.uci.edu -> 231
