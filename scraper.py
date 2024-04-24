@@ -282,6 +282,10 @@ def is_valid(url):
             return False
         # Extract the path without query parameters
         path_without_query = parsed.path.split('?')[0]
+        print("\n")
+        print(f"path with everything: {parsed.path}")
+        print(f"path_without_query: {parsed.path.split('?')[0]}")
+        print("\n")
         # Check if the path ends with a non-HTML file extension
         if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
             logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
