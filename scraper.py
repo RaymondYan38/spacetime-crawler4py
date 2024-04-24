@@ -168,27 +168,39 @@ def extract_next_links(url, resp):
         if has_high_content(content):
         # Generate a hash of the content for exact duplicate detection
             content_hash = hashlib.sha256(content).hexdigest()
-            soup = BeautifulSoup(content, "html.parser")
-            text_content = soup.get_text()
-            tokens = word_tokenize(text_content.lower())
-            tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
-            valid_tokens_len = len(tokens)
-            longest_page = [url, valid_tokens_len] if valid_tokens_len > longest_page[1] else longest_page
-            for token in tokens_without_stop_words:
-                word_to_occurances[token] += 1
-            features = Counter(tokens)
+            try:
+                soup = BeautifulSoup(content, "html.parser")
+                text_content = soup.get_text()
+                tokens = word_tokenize(text_content.lower())
+            except:
+                return []
+            
+            features = Counter(tokens) #getting the simhash for this page
             simhash = Simhash(features)
 
-            # Check if we have already seen this content or if it is near duplicat
+            # Check if we have already seen this content or if it is near duplicate
             if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
+                print("NEW PAGE FOUND!!! This condition has been met: if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):")
+                #tokenize and track word occurences for report
+                tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
+                valid_tokens_len = len(tokens)
+                longest_page = [url, valid_tokens_len] if valid_tokens_len > longest_page[1] else longest_page
+                for token in tokens_without_stop_words:
+                    word_to_occurances[token] += 1
+
                 simhash_index.add(content_hash, simhash) #add simhash to the index
                 seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
+
                 for link in soup.find_all('a'): #iterates through the links in the webpage
                     tempURL = link.get('href')
                     if tempURL:
                         clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                         clean_url = defragment_url(clean_url) #removes fragmentation
+                        print("ADDING URL: {clean_url} to extract_links")
                         extracted_links.add(clean_url)
+            else:
+                print("DUPLICATE DETECTED FROM THIS CONDITIONAL: if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):")
+                        
         else:
             print(f"This url DO NOT HAVE HIGH CONTENT SO WE IGNORE: {url}")
                         
@@ -200,6 +212,8 @@ def extract_next_links(url, resp):
         print("In this case: resp.status not in {200, 301, 302}. line 180")
         print(resp.error)
         return[]
+    elif not (url == resp.raw_response.url):
+        return [resp.raw_response.url]
     elif resp and resp.status in {301, 302}: #handles redirects
         print("REDIRECT CASE WHEN EXTRACTING LINKS. line 185")
         location_header = resp.headers.get('Location')
@@ -207,6 +221,7 @@ def extract_next_links(url, resp):
             redirect_url = urljoin(base_url, location_header)
             extracted_links.add(redirect_url)
     extracted_links = list(extracted_links)
+    
     print(f"EXTRACTED LINKS: {extracted_links}")
     return extracted_links
 
@@ -217,41 +232,44 @@ canonicalization to standardize URLs and avoid crawling the same content multipl
 def canonicalize_url(url):
     print("URL in canonicalize_url for debugging pruporses:", url)
     # Parse the URL
-    parsed = urlparse(url)
-    if not parsed:  # Check if parsed is None
-        return None
-    # Remove fragment identifier
-    parsed = parsed._replace(fragment='')
-    # Decode encoded characters in the path and query
-    decoded_path = unquote(parsed.path)
-    decoded_query = unquote(parsed.query)
-    # Check if the port matches the default for the scheme
-    default_ports = {"http": 80, "https": 443}
-    if parsed.port == default_ports.get(parsed.scheme):
-        parsed = parsed._replace(netloc=parsed.hostname)
-    # Add trailing slash if missing and no file extension present
-    if decoded_path and not decoded_path.endswith('/') and not os.path.splitext(decoded_path)[1]:
-        decoded_path += '/' 
-    # Normalize the path by resolving dot-segments
-    normalized_path = os.path.normpath(decoded_path)  
-    # Sort and encode query parameters
-    query_params = parse_qsl(decoded_query)
-    # Define known session ID and tracking parameter names
-    session_id_params = ["sessionid", "sid", "phpsessid"]  # Add more if needed
-    tracking_params = ["utm_source", "utm_medium", "utm_campaign"]  # Add more if needed
-    # Remove session ID parameters
-    query_params = [(key, value) for key, value in query_params if key.lower() not in session_id_params]
-    # Remove tracking parameters
-    query_params = [(key, value) for key, value in query_params if key.lower() not in tracking_params]
-    sorted_params = sorted(query_params)
-    sorted_query = urlencode(sorted_params)
-    # Convert scheme and netloc to lowercase
-    parsed = parsed._replace(scheme=parsed.scheme.lower(),
-                             netloc=parsed.netloc.lower(),
-                             path=quote(normalized_path),  
-                             query=sorted_query)
-    # Return the canonicalized URL
-    return parsed.geturl() if parsed else None
+    try:
+        parsed = urlparse(url)
+        if not parsed:  # Check if parsed is None
+            return None
+        # Remove fragment identifier
+        parsed = parsed._replace(fragment='')
+        # Decode encoded characters in the path and query
+        decoded_path = unquote(parsed.path)
+        decoded_query = unquote(parsed.query)
+        # Check if the port matches the default for the scheme
+        default_ports = {"http": 80, "https": 443}
+        if parsed.port == default_ports.get(parsed.scheme):
+            parsed = parsed._replace(netloc=parsed.hostname)
+        # Add trailing slash if missing and no file extension present
+        if decoded_path and not decoded_path.endswith('/') and not os.path.splitext(decoded_path)[1]:
+            decoded_path += '/' 
+        # Normalize the path by resolving dot-segments
+        normalized_path = os.path.normpath(decoded_path)  
+        # Sort and encode query parameters
+        query_params = parse_qsl(decoded_query)
+        # Define known session ID and tracking parameter names
+        session_id_params = ["sessionid", "sid", "phpsessid"]  # Add more if needed
+        tracking_params = ["utm_source", "utm_medium", "utm_campaign"]  # Add more if needed
+        # Remove session ID parameters
+        query_params = [(key, value) for key, value in query_params if key.lower() not in session_id_params]
+        # Remove tracking parameters
+        query_params = [(key, value) for key, value in query_params if key.lower() not in tracking_params]
+        sorted_params = sorted(query_params)
+        sorted_query = urlencode(sorted_params)
+        # Convert scheme and netloc to lowercase
+        parsed = parsed._replace(scheme=parsed.scheme.lower(),
+                                netloc=parsed.netloc.lower(),
+                                path=quote(normalized_path),  
+                                query=sorted_query)
+        # Return the canonicalized URL
+        return parsed.geturl() if parsed else None
+    except Exception as e:
+        print(f"Error canonicalizing URL: {url}: {e}")
 
 def is_valid(url):
     try:
@@ -276,10 +294,6 @@ def is_valid(url):
             return False
         # Extract the path without query parameters
         path_without_query = parsed.path.split('?')[0]
-        print("\n")
-        print(f"path with everything: {parsed.path}")
-        print(f"path_without_query: {parsed.path.split('?')[0]}")
-        print("\n")
         # Check if the path ends with a non-HTML file extension
         
         # ----------------------OLD REGEX STUFF ----------------------
@@ -337,7 +351,6 @@ def has_high_content(html_content):
         soup = BeautifulSoup(html_content, 'html.parser')
         text = soup.get_text()
         word_count = len(text.split())
-        # tag_count = len(soup.find_all())
         threshold = 50
         return word_count > threshold
 
