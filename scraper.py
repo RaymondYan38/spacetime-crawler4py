@@ -263,7 +263,7 @@ def canonicalize_url(url):
 
 def is_valid(url):
     try:
-        if url.startswith("mailto:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors"):
+        if url.startswith("mailto:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml"):
             logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
             return False
         # Canonicalize the URL
@@ -273,7 +273,7 @@ def is_valid(url):
             return False
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
-        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path :
+        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path:
             return False
         
         if parsed.scheme not in {"http", "https"}:
