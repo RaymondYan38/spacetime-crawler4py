@@ -161,15 +161,15 @@ def extract_next_links(url, resp):
     base_url = resp.url #original url of the pages
     if resp.status == 200 and resp.raw_response and resp.raw_response.content: #checks for valid response 
         content = resp.raw_response.content
-        if has_high_content(content):
+        try:
+            soup = BeautifulSoup(content, "html.parser")
+            text_content = soup.get_text()
+            tokens = word_tokenize(text_content.lower())
+        except:
+            return []
+        if has_high_content(soup, text_content, content):
         # Generate a hash of the content for exact duplicate detection
             content_hash = hashlib.sha256(content).hexdigest()
-            try:
-                soup = BeautifulSoup(content, "html.parser")
-                text_content = soup.get_text()
-                tokens = word_tokenize(text_content.lower())
-            except:
-                return []
             
             features = Counter(tokens) #getting the simhash for this page
             simhash = Simhash(features)
@@ -339,14 +339,12 @@ def defragment_url(url):
     parsed_url = urlparse(url)._replace(fragment='')
     return urlunparse(parsed_url)
 
-def has_high_content(html_content):
+def has_high_content(soup, text, html_content):
     """checks if response has enough textual content by comparing the word to html tag ratio to a given threshold"""
     max_file_size = 2 * 1024 * 1024
     if len(html_content) > max_file_size: #want to avoid large files
         return False
     else :
-        soup = BeautifulSoup(html_content, 'html.parser')
-        text = soup.get_text()
         text_length = len(text)
         total_length = len(str(soup))
         text_to_html_ratio = text_length / total_length
