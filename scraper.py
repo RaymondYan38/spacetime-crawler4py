@@ -166,7 +166,6 @@ def extract_next_links(url, resp):
             soup = BeautifulSoup(content, "lxml")
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
-            print(tokens)
         except:
             return []
         if has_high_content(soup, text_content, content):
@@ -176,7 +175,7 @@ def extract_next_links(url, resp):
             features = Counter(tokens) #getting the simhash for this page
             simhash = Simhash(features)
             
-            is_near_duplicate_result = is_near_duplicate(simhash, simhash_index)
+            is_near_duplicate_result = is_near_duplicate(url, simhash, simhash_index)
             
             if is_near_duplicate_result:
                 print(f"SIMHASH THING DETECED A NEAR DUPLICATE FOR THIS URL: {url}")
@@ -193,7 +192,7 @@ def extract_next_links(url, resp):
                 for token in tokens_without_stop_words:
                     word_to_occurances[token] += 1
 
-                simhash_index.add(content_hash, simhash) #add simhash to the index
+                # simhash_index.add(content_hash, simhash) #add simhash to the index
                 seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
 
                 for link in soup.find_all('a'): #iterates through the links in the webpage
@@ -360,11 +359,19 @@ def has_high_content(soup, text, html_content):
 
         return word_count >= 100 or text_to_html_ratio >= 0.25 or len(headers) >= 3 or len(paragraphs) >= 5
 
-def is_near_duplicate(simhash, simhash_index, similarity_threshold = 0.9):
+def is_near_duplicate(url, simhash, simhash_index):
+    similarity_threshold = 0.9
     #checks if webpage is near duplicate by using simhashing
     near_duplicates = simhash_index.get_near_dups(simhash)
-
-    for near_duplicate in near_duplicates:
-        if simhash.distance(Simhash(near_duplicate)) <= similarity_threshold:
-            return True
-    return False
+    is_duplicate = any(simhash_dict[dup].distance(simhash) <= similarity_threshold for dup in near_duplicates)
+    if is_duplicate:
+        return True
+    else:
+        simhash_dict[url] = simhash
+        simhash_index.add(url, simhash)
+        return False
+    # for near_duplicate in near_duplicates:
+        
+    #     if simhash.distance(Simhash(near_duplicate)) <= similarity_threshold:
+    #         return True
+    # return False
