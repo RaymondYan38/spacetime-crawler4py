@@ -351,6 +351,10 @@ def has_high_content(soup, text, html_content):
     else :
         text_length = len(text)
         total_length = len(str(soup))
+        
+        if total_length == 0:
+            return False
+        
         text_to_html_ratio = text_length / total_length
         word_count = len(text.split())
 
