@@ -162,7 +162,7 @@ def extract_next_links(url, resp):
     if resp.status == 200 and resp.raw_response and resp.raw_response.content: #checks for valid response 
         content = resp.raw_response.content
         try:
-            soup = BeautifulSoup(content, "html.parser")
+            soup = BeautifulSoup(content, "lxml")
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
         except:
