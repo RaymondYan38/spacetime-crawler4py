@@ -35,7 +35,7 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 # self.save in frontier.py should have the answer to report Q1
 
 longest_page = [None, float("-inf")]
-simhash_index = SimhashIndex([])
+simhash_index = SimhashIndex([], k=3)
 visited_url = set()
 DEFAULT_CRAWL_DELAY = 1
 
@@ -355,7 +355,7 @@ def has_high_content(soup, text, html_content):
 
         return word_count >= 100 or text_to_html_ratio >= 0.25 or len(headers) >= 3 or len(paragraphs) >= 5
 
-def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
+def is_near_duplicate(simhash, simhash_index, similarity_threshold = 0.9):
     #checks if webpage is near duplicate by using simhashing
     near_duplicates = simhash_index.get_near_dups(simhash)
 
