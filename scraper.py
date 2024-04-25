@@ -36,6 +36,7 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
 
 longest_page = [None, float("-inf")]
 simhash_index = SimhashIndex([], k=3)
+simhash_dict = dict()
 visited_url = set()
 DEFAULT_CRAWL_DELAY = 1
 
@@ -165,6 +166,7 @@ def extract_next_links(url, resp):
             soup = BeautifulSoup(content, "lxml")
             text_content = soup.get_text()
             tokens = word_tokenize(text_content.lower())
+            print(tokens)
         except:
             return []
         if has_high_content(soup, text_content, content):
@@ -184,7 +186,10 @@ def extract_next_links(url, resp):
                 #tokenize and track word occurences for report
                 tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
                 valid_tokens_len = len(tokens)
-                longest_page = [url, valid_tokens_len] if valid_tokens_len > longest_page[1] else longest_page
+                
+                if valid_tokens_len > longest_page[1]:
+                    longest_page = [url, valid_tokens_len]
+                
                 for token in tokens_without_stop_words:
                     word_to_occurances[token] += 1
 
