@@ -267,7 +267,7 @@ def canonicalize_url(url):
 
 def is_valid(url):
     try:
-        if url.startswith("mailto:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml") or url.startswith("http://tippersweb.ics.uci.edu"):
+        if url.startswith("mailto:") or url.startswith("doi:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml") or url.startswith("http://tippersweb.ics.uci.edu"):
             logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
             return False
         # Canonicalize the URL
