@@ -98,7 +98,6 @@ def politeness(url):
             rp.read()
             # Check if the domain has a robots.txt file
             if not rp.can_fetch("*", url):
-                print("Failing in this conditional on line 85: if not rp.can_fetch("*", url):")
                 can_crawl = False
                 return can_crawl
             crawl_delay = rp.crawl_delay("*")
@@ -158,12 +157,9 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-
     extracted_links = set()
     base_url = resp.url #original url of the pages
-
-    if resp.status == 200 and resp.raw_response.content: #checks for valid response 
-        print("In this case:  if resp.status == 200 and resp.raw_response.content. line 148")
+    if resp.status == 200 and resp.raw_response and resp.raw_response.content: #checks for valid response 
         content = resp.raw_response.content
         if has_high_content(content):
         # Generate a hash of the content for exact duplicate detection
@@ -177,10 +173,14 @@ def extract_next_links(url, resp):
             
             features = Counter(tokens) #getting the simhash for this page
             simhash = Simhash(features)
+            
+            is_near_duplicate_result = is_near_duplicate(simhash, simhash_index)
+            
+            if is_near_duplicate_result:
+                print(f"SIMHASH THING DETECED A NEAR DUPLICATE FOR THIS URL: {url}")
 
             # Check if we have already seen this content or if it is near duplicate
-            if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):
-                print("NEW PAGE FOUND!!! This condition has been met: if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):")
+            if content_hash not in seen_fingerprints and not is_near_duplicate_result:
                 #tokenize and track word occurences for report
                 tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
                 valid_tokens_len = len(tokens)
@@ -196,33 +196,23 @@ def extract_next_links(url, resp):
                     if tempURL:
                         clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                         clean_url = defragment_url(clean_url) #removes fragmentation
-                        print(f"ADDING URL: {clean_url} to extract_links")
-                        extracted_links.add(clean_url)
-            else:
-                print("DUPLICATE DETECTED FROM THIS CONDITIONAL: if content_hash not in seen_fingerprints and not is_near_duplicate(simhash, simhash_index):")
-                        
+                        extracted_links.add(clean_url)     
         else:
             print(f"This url DO NOT HAVE HIGH CONTENT SO WE IGNORE: {url}")
-                        
     elif resp is None or resp.raw_response is None:
-        print("In this case: resp is None or resp.raw_response is None. line 176")
-        print(f"One of these must be true in this case: resp is None: {resp is None} or resp.raw_response is None: {resp.raw_response is None}")
         return []
     elif resp.status not in {200, 301, 302}:
-        print("In this case: resp.status not in {200, 301, 302}. line 180")
         print(resp.error)
         return[]
     elif not (url == resp.raw_response.url):
         return [resp.raw_response.url]
     elif resp and resp.status in {301, 302}: #handles redirects
-        print("REDIRECT CASE WHEN EXTRACTING LINKS. line 185")
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
             extracted_links.add(redirect_url)
     extracted_links = list(extracted_links)
-    
-    print(f"EXTRACTED LINKS: {extracted_links}")
+    print(f"EXTRACTED LINKS FROM THIS URL: {url} ARE: {extracted_links}")
     return extracted_links
 
 """URLs can represent the same page in multiple ways. For example, http://example.com, 
@@ -230,7 +220,6 @@ http://example.com/, http://example.com/index.html, and http://example.com/? cou
 canonicalization to standardize URLs and avoid crawling the same content multiple times.
 """
 def canonicalize_url(url):
-    print("URL in canonicalize_url for debugging pruporses:", url)
     # Parse the URL
     try:
         parsed = urlparse(url)
@@ -269,23 +258,22 @@ def canonicalize_url(url):
         # Return the canonicalized URL
         return parsed.geturl() if parsed else None
     except Exception as e:
-        print(f"Error canonicalizing URL: {url}: {e}")
+        print(f"Error canonicalizing URL: {url} with this exception: {e}")
         return None
 
 def is_valid(url):
     try:
-        if url.startswith("mailto:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:"):
+        if url.startswith("mailto:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors"):
             logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
             return False
         # Canonicalize the URL
         canonical_url = canonicalize_url(url)
         if canonical_url is None:
-            logging.warning(f"URL could not be accessed: {url}")
+            logging.warning(f"URL could not be accessed because canonical_url is None: {url}")
             return False
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
-        print(f"THING YOU WANT TO SEE FOR DOKU: {parsed.path}")
-        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path:
+        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path :
             return False
         
         if parsed.scheme not in {"http", "https"}:
@@ -296,15 +284,6 @@ def is_valid(url):
         if not any(parsed.netloc.endswith(domain) for domain in valid_domains):
             logging.warning(f"URL rejected: {url} - Reason: domain is NOT one of the specified domains")
             return False
-        # Extract the path without query parameters
-        # path_without_query = parsed.path.split('?')[0]
-        # Check if the path ends with a non-HTML file extension
-        
-        # ----------------------OLD REGEX STUFF ----------------------
-        # if NON_HTML_EXTENSIONS_PATTERN.match(path_without_query.lower()):
-        #     logging.warning(f"URL rejected: {url} - Reason: path ends with a non-HTML file extension")
-        #     return False
-        # ----------------------OLD REGEX STUFF ----------------------
         if NON_HTML_EXTENSIONS_PATTERN.search(parsed.geturl().lower()):
             logging.warning(f"URL rejected: {url} - Reason: URL ends with a non-HTML file extension")
             return False
@@ -327,8 +306,14 @@ def is_valid(url):
         #                 return False
         # Check if the path length exceeds the threshold
         max_path_length = 10
-        if len(parsed.path.split('/')) > max_path_length:
+        path_splt = parsed.path.split('/')
+        len_path_splt = len(path_splt)
+        if len_path_splt > max_path_length:
             logging.warning(f"URL rejected: {url} - Reason: path length exceeds threshold")
+            return False
+        
+        if len_path_splt != len(set(path_splt)):
+            logging.warning(f"URL rejected: {url} - Reason: Duplicates in path indicating we might be in a cycle")
             return False
         
         for rule in exclusion_rules:
@@ -337,19 +322,17 @@ def is_valid(url):
                 return False
 
         if parsed.geturl() in visited_url:
-            print(f"REPEATED URL IS FOUND: {url}. NOT ADDING REPEATED URL!!!")
+            print(f"REPEATED URL IS FOUND IN VISITED SET, IGNORING: {url}")
             return False
+        
         else:
             visited_url.add(parsed.geturl())
         print("------------------------------------------------------------------------")
-        print(f"URL accepted: {url}")
-        print(f"This is the parsed.geturl() version of the url: {parsed.geturl()}")
+        print(f"URL validated/accepted: {url}")
         print("------------------------------------------------------------------------")
-        
         return True
-    except TypeError:
-        print("TypeError for ", parsed)
-        raise
+    except Exception as e:
+        print("Exception in is_valid: ", e)
 
 def defragment_url(url):
     # removes the fragment section of url and returns the url without it
@@ -357,18 +340,22 @@ def defragment_url(url):
     return urlunparse(parsed_url)
 
 def has_high_content(html_content):
-
     """checks if response has enough textual content by comparing the word to html tag ratio to a given threshold"""
-        
-    max_file_size = 2 * 1024 *1024
+    max_file_size = 2 * 1024 * 1024
     if len(html_content) > max_file_size: #want to avoid large files
         return False
     else :
         soup = BeautifulSoup(html_content, 'html.parser')
         text = soup.get_text()
+        text_length = len(text)
+        total_length = len(str(soup))
+        text_to_html_ratio = text_length / total_length
         word_count = len(text.split())
-        threshold = 50
-        return word_count > threshold
+
+        headers = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+        paragraphs = soup.find_all('p')
+
+        return word_count >= 100 or text_to_html_ratio >= 0.25 or len(headers) >= 3 or len(paragraphs) >= 5
 
 def is_near_duplicate(simhash, simhash_index, similarity_threshold = 3):
     #checks if webpage is near duplicate by using simhashing
