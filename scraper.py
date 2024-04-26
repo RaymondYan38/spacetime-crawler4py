@@ -181,10 +181,6 @@ def extract_next_links(url, resp):
                 #tokenize and track word occurences for report
                 tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
                 valid_tokens_len = len(tokens)
-                print("--------------------LOKIE------------------------")
-                print(f"valid_token_len: {valid_tokens_len}")
-                print(f"longest_page[1]: {longest_page[1]}")
-                print("--------------------LOKIE------------------------")
                 if valid_tokens_len > longest_page[1]:
                     longest_page[0] = url
                     longest_page[1] = valid_tokens_len
@@ -267,7 +263,7 @@ def canonicalize_url(url):
 
 def is_valid(url):
     try:
-        if url.startswith("mailto:") or url.startswith("doi:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml") or url.startswith("http://tippersweb.ics.uci.edu") or url.startswith("http://sli.ics.uci.edu/Ihler-Photos/Main") or url.startswith("http://sli.ics.uci.edu/~ihler/uai-data") or url.startswith("https://ics.uci.edu/~eppstein/pix"):
+        if url.startswith("mailto:") or url.startswith("doi:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml") or url.startswith("http://tippersweb.ics.uci.edu") or url.startswith("https://tippersweb.ics.uci.edu") or url.startswith("http://sli.ics.uci.edu/Ihler-Photos/Main") or url.startswith("http://sli.ics.uci.edu/~ihler/uai-data") or url.startswith("https://ics.uci.edu/~eppstein/pix"):
             logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
             return False
         # Canonicalize the URL
