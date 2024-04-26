@@ -58,8 +58,12 @@ class Worker(Thread):
         
         with open("q3.txt", "w") as f3:
             f3.write("What are the 50 most common words in the entire set of pages crawled under these domains?\n")
+            x = 0
             for word, occ in sorted(word_to_occurances.items(), key=lambda x: -x[1]):
                 f3.write(f"{word}: {occ}\n")
+                x += 1
+                if x >= 50:
+                    break
         
         with open("q4.txt", "w") as f4:
             f4.write("How many subdomains did you find in the ics.uci.edu domain? Submit the list of subdomains ordered alphabetically and the number of unique pages detected in each subdomain.\n")
