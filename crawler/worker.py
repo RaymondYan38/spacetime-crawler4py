@@ -63,5 +63,5 @@ class Worker(Thread):
         
         with open("q4.txt", "a") as f4:
             f4.write("How many subdomains did you find in the ics.uci.edu domain? Submit the list of subdomains ordered alphabetically and the number of unique pages detected in each subdomain.\n")
-            for url, occ in sorted(subdomains.items(), key=lambda x: x[0]):
+            for url, occ in sorted(subdomain_to_occ.items(), key=lambda x: x[0]):
                 f4.write(f"{url}: {occ}\n")
