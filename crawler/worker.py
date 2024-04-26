@@ -35,33 +35,33 @@ class Worker(Thread):
                 self.frontier.add_url(scraped_url)
             self.frontier.mark_url_complete(tbd_url)
             time.sleep(self.config.time_delay)
-            self.generate_answers()
+            self.report_questions()
 
-    def generate_answers(self):
-        q1_file = open("Question 1a.txt", "w")
-        q2_file = open("Question 2a.txt", "w")
-        q3_file = open("Question 3a.txt", "w")
-        q4_file = open("Question 4a.txt", "w")
-
-        subdomains = defaultdict(int)
-        q1_file.write(f"\n\nNumber of Unique URLs: {len(self.frontier.save)}\n\n")
+    def report_questions(self):
+        num_unique_pages = len(self.frontier.save)
+        subdomain_to_occ = defaultdict(int)
         for url, _ in self.frontier.save.values():
             if 'ics.uci.edu' in url:
-                parsed_url = urlsplit(url)
-                subdomains[parsed_url.netloc] += 1
-            q1_file.write(url + "\n")
-
-        q1_file.write("\n\nALL URLS:\n\n")
-        q2_file.write(f"\n\nLongest page and number of words: {longest_page[0]} , {longest_page[1]}\n\n")
-        q3_file.write("\n\n50 most common words in the entire set of pages crawled under these domains:\n")
-        for word, freq in sorted(word_to_occurances.items(), key=lambda x: -x[1]):
-            q3_file.write(f"{word} -> {freq}\n")
+                split_url = urlsplit(url)
+                subdomain_to_occ[split_url.netloc] += 1
+            
+        with open("q1.txt", "a") as f1:
+            f1.write(f"How many unique pages did you find?: {num_unique_pages}\n")
+            f1.write("UNIQUE URLS WE SEEN: \n")
+            for url, _ in self.frontier.save.values():
+                f1.write(f"{url}\n")
         
-        q4_file.write("Subdomains in ics.uci.edu and number of unique pages: ")
-        for url, freq in sorted(subdomains.items(), key=lambda x: x[0]):
-            q4_file.write(f"{url} -> {freq}\n")
-
-        q1_file.close()
-        q2_file.close()
-        q3_file.close()
-        q4_file.close()
+        with open("q2.txt", "a") as f2:
+            f2.write("What is the longest page in terms of the number of words?:\n")
+            f2.write(f"Url: {longest_page[0]}\n")
+            f2.write(f"Length: {longest_page[1]}\n")
+        
+        with open("q3.txt", "a") as f3:
+            f3.write("What are the 50 most common words in the entire set of pages crawled under these domains?\n")
+            for word, occ in sorted(word_to_occurances.items(), key=lambda x: -x[1]):
+                f3.write(f"{word}: {occ}\n")
+        
+        with open("q4.txt", "a") as f4:
+            f4.write("How many subdomains did you find in the ics.uci.edu domain? Submit the list of subdomains ordered alphabetically and the number of unique pages detected in each subdomain.\n")
+            for url, occ in sorted(subdomains.items(), key=lambda x: x[0]):
+                f4.write(f"{url}: {occ}\n")
