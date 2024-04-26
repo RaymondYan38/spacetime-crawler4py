@@ -29,7 +29,7 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
     + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
     + r"|epub|dll|cnf|tgz|sha1"
     + r"|thmx|mso|arff|rtf|jar|csv"
-    + r"|rm|smil|wmv|swf|wma|zip|rar|gz|json|mpg|flv|sh)$"
+    + r"|rm|smil|wmv|swf|wma|zip|rar|gz|json|mpg|flv|sh|img|sql)$"
 )
 
 # self.save in frontier.py should have the answer to report Q1
@@ -267,7 +267,7 @@ def canonicalize_url(url):
 
 def is_valid(url):
     try:
-        if url.startswith("mailto:") or url.startswith("doi:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml") or url.startswith("http://tippersweb.ics.uci.edu"):
+        if url.startswith("mailto:") or url.startswith("doi:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml") or url.startswith("http://tippersweb.ics.uci.edu") or url.startswith("http://sli.ics.uci.edu/Ihler-Photos/Main") or url.startswith("http://sli.ics.uci.edu/~ihler/uai-data"):
             logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
             return False
         # Canonicalize the URL
