@@ -202,8 +202,8 @@ def extract_next_links(url, resp):
     elif resp is None or resp.raw_response is None:
         return []
     elif resp.status not in {200, 301, 302}:
-        print(resp.error)
-        return[]
+        print(f"URL's res.status not in [200, 301, 302], it was: {resp.status} and the error was: {resp.error}")
+        return []
     elif not (url == resp.raw_response.url):
         return [resp.raw_response.url]
     elif resp and resp.status in {301, 302}: #handles redirects
