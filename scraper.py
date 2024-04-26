@@ -186,7 +186,8 @@ def extract_next_links(url, resp):
                 print(f"longest_page[1]: {longest_page[1]}")
                 print("--------------------LOKIE------------------------")
                 if valid_tokens_len > longest_page[1]:
-                    longest_page = [url, valid_tokens_len]
+                    longest_page[0] = url
+                    longest_page[1] = valid_tokens_len
                 
                 for token in tokens_without_stop_words:
                     word_to_occurances[token] += 1
