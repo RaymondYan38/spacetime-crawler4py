@@ -181,7 +181,10 @@ def extract_next_links(url, resp):
                 #tokenize and track word occurences for report
                 tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
                 valid_tokens_len = len(tokens)
-                
+                print("--------------------LOKIE------------------------")
+                print(f"valid_token_len: {valid_tokens_len}")
+                print(f"longest_page[1]: {longest_page[1]}")
+                print("--------------------LOKIE------------------------")
                 if valid_tokens_len > longest_page[1]:
                     longest_page = [url, valid_tokens_len]
                 
