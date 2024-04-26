@@ -124,10 +124,6 @@ def politeness(url):
             #         can_crawl = False
             #         break
         except HTTPError as e:
-            if e.code == 404:
-                # File not found, allow crawling by default
-                can_crawl = True
-            else:
                 # Log other HTTP errors and set a flag to retry or skip
                 logging.error(f"HTTPError accessing robots.txt for domain {domain}: {e}")
                 can_crawl = False
@@ -267,7 +263,7 @@ def canonicalize_url(url):
 
 def is_valid(url):
     try:
-        if url.startswith("mailto:") or url.startswith("doi:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml") or url.startswith("http://tippersweb.ics.uci.edu") or url.startswith("http://sli.ics.uci.edu/Ihler-Photos/Main") or url.startswith("http://sli.ics.uci.edu/~ihler/uai-data"):
+        if url.startswith("mailto:") or url.startswith("doi:") or url.startswith("javascript:") or url.startswith("skype:") or url.startswith("tel:") or url.startswith("https://www.ics.uci.edu/ugrad/honors") or url.startswith("https://archive.ics.uci.edu/ml") or url.startswith("http://tippersweb.ics.uci.edu") or url.startswith("http://sli.ics.uci.edu/Ihler-Photos/Main") or url.startswith("http://sli.ics.uci.edu/~ihler/uai-data") or url.startswith("https://ics.uci.edu/~eppstein/pix"):
             logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
             return False
         # Canonicalize the URL
