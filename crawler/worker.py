@@ -40,32 +40,28 @@ class Worker(Thread):
     def report_questions(self):
         num_unique_pages = len(self.frontier.save)
         subdomain_to_occ = defaultdict(int)
+        
         for url, _ in self.frontier.save.values():
             if 'ics.uci.edu' in url:
                 split_url = urlsplit(url)
                 subdomain_to_occ[split_url.netloc] += 1
             
-        with open("q1.txt", "w") as f1:
-            f1.write(f"How many unique pages did you find?: {num_unique_pages}\n")
-            f1.write("UNIQUE URLS WE SEEN: \n")
-            for url, _ in self.frontier.save.values():
-                f1.write(f"{url}\n")
-        
-        with open("q2.txt", "w") as f2:
-            f2.write("What is the longest page in terms of the number of words?:\n")
-            f2.write(f"Url: {longest_page[0]}\n")
-            f2.write(f"Length: {longest_page[1]}\n")
-        
-        with open("q3.txt", "w") as f3:
-            f3.write("What are the 50 most common words in the entire set of pages crawled under these domains?\n")
+        with open("report.txt", "w") as f1:
+            f1.write(f"1. How many unique pages did you find?: {num_unique_pages}\n")
+            f1.write("2. What is the longest page in terms of the number of words?:\n")
+            f1.write(f"Url: {longest_page[0]}\n")
+            f1.write(f"Length: {longest_page[1]}\n")
+            f1.write("3. What are the 50 most common words in the entire set of pages crawled under these domains?\n")
             x = 0
             for word, occ in sorted(word_to_occurances.items(), key=lambda x: -x[1]):
-                f3.write(f"{word}: {occ}\n")
+                f1.write(f"{word}: {occ}\n")
                 x += 1
                 if x >= 50:
                     break
-        
-        with open("q4.txt", "w") as f4:
-            f4.write("How many subdomains did you find in the ics.uci.edu domain? Submit the list of subdomains ordered alphabetically and the number of unique pages detected in each subdomain.\n")
+            f1.write("4. How many subdomains did you find in the ics.uci.edu domain? Submit the list of subdomains ordered alphabetically and the number of unique pages detected in each subdomain.\n")
             for url, occ in sorted(subdomain_to_occ.items(), key=lambda x: x[0]):
-                f4.write(f"{url}: {occ}\n")
+                f1.write(f"{url}: {occ}\n")
+            f1.write("----------------------------ADDITIONAL INFORMATION NOT REQUIRED----------------------------\n")
+            f1.write("UNIQUE URLS WE SEEN: \n")
+            for url, _ in self.frontier.save.values():
+                f1.write(f"{url}\n")
