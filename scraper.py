@@ -143,11 +143,11 @@ def politeness_time_delay(domain):
 def sitemaps_handling(rp):
     global sitemaps_links
     
-    sitemap_urls = rp.site_maps()
-    if sitemap_urls:
-        for sitemap_url in sitemap_urls:
+    sitemap_urls = rp.site_maps()  # get site maps
+    if sitemap_urls:  # if there are any sitemaps
+        for sitemap_url in sitemap_urls:  # iterate through sitemaps urls 
             sitemap_urls_from_helper = get_urls_from_sitemap(sitemap_url)
-            for smu in sitemap_urls_from_helper:
+            for smu in sitemap_urls_from_helper: # parsed links from sitemaps appeded to sitemaps_links
                 sitemaps_links.append(smu)
 
 def robots_txt_and_sitemaps_handling(rp, url, domain):
@@ -164,11 +164,14 @@ def robots_txt_and_sitemaps_handling(rp, url, domain):
             sitemaps_handling(rp)
         except:
             print("NO SITEMAPS")
-        crawl_delay = rp.crawl_delay("*")
+        crawl_delay = rp.crawl_delay("*")  # obtain crawl delay
+        
         # Cache the crawl delay and disallowed subdomains in robotstxtdict
         robotstxtdict[domain] = {
             'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
         }
+        
+        # exception handling, URLError was most common
     except HTTPError as e:
         # Log other HTTP errors 
         logging.error(f"HTTPError accessing robots.txt for domain {domain}: {e}")
@@ -208,9 +211,9 @@ def politeness(url):
     return can_crawl
 
 def tokenize_content(content):
-    soup = BeautifulSoup(content, "lxml")
+    soup = BeautifulSoup(content, "lxml") # using bs4 to take information from website
     text_content = soup.get_text()
-    tokens = word_tokenize(text_content.lower())
+    tokens = word_tokenize(text_content.lower()) # tokenizing
     return soup, text_content, tokens
 
 def extract_next_links(url, resp):
