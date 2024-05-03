@@ -233,6 +233,14 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     extracted_links = set()
     base_url = resp.url #original url of the pages
+    
+    if resp and resp.url and resp.raw_response.url:
+        print("*****************************************************************************")
+        print(f"url: {url}")
+        print(f"resp.url: {resp.url}")
+        print(f"resp.raw_response.url: {resp.raw_response.url}")
+        print("*****************************************************************************")
+    
     if resp.status == 200 and resp.raw_response and resp.raw_response.content: #checks for valid response 
         content = resp.raw_response.content
         try:
@@ -273,16 +281,16 @@ def extract_next_links(url, resp):
             print(f"This url DO NOT HAVE HIGH CONTENT SO WE IGNORE: {url}")
     elif resp is None or resp.raw_response is None:
         return []
-    elif resp.status not in {200, 301, 302}:
-        print(f"URL's res.status not in [200, 301, 302], it was: {resp.status} and the error was: {resp.error}")
-        return []
-    elif not (url == resp.raw_response.url):
-        return [resp.raw_response.url]
     elif resp and resp.status in {301, 302}: #handles redirects
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
             extracted_links.add(redirect_url)
+    elif resp.status not in {200, 301, 302}:
+        print(f"URL's res.status not in [200, 301, 302], it was: {resp.status} and the error was: {resp.error}")
+        return []
+    elif not (url == resp.raw_response.url):
+        return [resp.raw_response.url]
     extracted_links = list(extracted_links)
     print(f"EXTRACTED LINKS FROM THIS URL: {url} ARE: {extracted_links}")
     return extracted_links
