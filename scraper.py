@@ -100,21 +100,6 @@ exclusion_rules = [
 
 sitemaps_links = list()
 
-def get_urls_from_sitemap(sitemap_url):
-    urls = []  # Initializing an empty list to store URLs
-    parsed_url = urljoin(sitemap_url, '/sitemap.xml')  # Constructing the full URL of the sitemap file
-    conn = HTTPConnection(parsed_url)  # Establishing an HTTP connection to the sitemap URL
-    conn.request('GET', '')  # Sending a GET request to the server to fetch the sitemap content from root url(parsed_url)
-    response = conn.getresponse()  # Receiving the response from the server
-    if response.status == 200:  # Checking if the response status is 200 (OK) 
-        try:
-            sitemap_content = response.read()  # Reading the content of the sitemap
-            soup = BeautifulSoup(sitemap_content, 'xml')  # Parsing the sitemap content using BeautifulSoup with XML parser
-            urls = [loc.text for loc in soup.find_all('loc')]  # Extracting URLs by finding all loc tags and retrieving their text
-        except:
-            return []
-    return urls
-
 def scraper(url, resp):
     global sitemaps_links
     
@@ -139,6 +124,21 @@ def politeness_time_delay(domain):
     if time_since_last_access < crawl_delay: # if not enough time has passed since crawl delay we go into this conditional
         # Wait for the remaining crawl delay time
         time.sleep(crawl_delay - time_since_last_access)
+        
+def get_urls_from_sitemap(sitemap_url):
+    urls = []  # Initializing an empty list to store URLs
+    parsed_url = urljoin(sitemap_url, '/sitemap.xml')  # Constructing the full URL of the sitemap file
+    conn = HTTPConnection(parsed_url)  # Establishing an HTTP connection to the sitemap URL
+    conn.request('GET', '')  # Sending a GET request to the server to fetch the sitemap content from root url(parsed_url)
+    response = conn.getresponse()  # Receiving the response from the server
+    if response.status == 200:  # Checking if the response status is 200 (OK) 
+        try:
+            sitemap_content = response.read()  # Reading the content of the sitemap
+            soup = BeautifulSoup(sitemap_content, 'xml')  # Parsing the sitemap content using BeautifulSoup with XML parser
+            urls = [loc.text for loc in soup.find_all('loc')]  # Extracting URLs by finding all loc tags and retrieving their text
+        except:
+            return []
+    return urls
 
 def sitemaps_handling(rp):
     global sitemaps_links
