@@ -234,13 +234,6 @@ def extract_next_links(url, resp):
     extracted_links = set()
     base_url = resp.url #original url of the pages
     
-    if resp and resp.url and resp.raw_response.url:
-        print("*****************************************************************************")
-        print(f"url: {url}")
-        print(f"resp.url: {resp.url}")
-        print(f"resp.raw_response.url: {resp.raw_response.url}")
-        print("*****************************************************************************")
-    
     if resp.status == 200 and resp.raw_response and resp.raw_response.content: #checks for valid response 
         content = resp.raw_response.content
         try:
