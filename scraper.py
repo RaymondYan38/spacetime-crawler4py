@@ -21,7 +21,6 @@ from simhash import Simhash, SimhashIndex
 from http.client import HTTPConnection
 
 seen_fingerprints = set()
-robotstxtdict = {}
 
 NON_HTML_EXTENSIONS_PATTERN = re.compile(
     r"\.(apk|css|js|bmp|gif|jpe?g|ico"
@@ -102,109 +101,124 @@ exclusion_rules = [
 sitemaps_links = list()
 
 def get_urls_from_sitemap(sitemap_url):
-    urls = []
-    parsed_url = urljoin(sitemap_url, '/sitemap.xml')
-    conn = HTTPConnection(parsed_url)
-    conn.request('GET', '')
-    response = conn.getresponse()
-    if response.status == 200:
+    urls = []  # Initializing an empty list to store URLs
+    parsed_url = urljoin(sitemap_url, '/sitemap.xml')  # Constructing the full URL of the sitemap file
+    conn = HTTPConnection(parsed_url)  # Establishing an HTTP connection to the sitemap URL
+    conn.request('GET', '')  # Sending a GET request to the server to fetch the sitemap content from root url(parsed_url)
+    response = conn.getresponse()  # Receiving the response from the server
+    if response.status == 200:  # Checking if the response status is 200 (OK) 
         try:
-            sitemap_content = response.read()
-            soup = BeautifulSoup(sitemap_content, 'xml')
-            urls = [loc.text for loc in soup.find_all('loc')]
+            sitemap_content = response.read()  # Reading the content of the sitemap
+            soup = BeautifulSoup(sitemap_content, 'xml')  # Parsing the sitemap content using BeautifulSoup with XML parser
+            urls = [loc.text for loc in soup.find_all('loc')]  # Extracting URLs by finding all loc tags and retrieving their text
         except:
             return []
     return urls
 
-def detect_repetitive_pattern(url):
-    # Function to detect repetitive patterns in URLs
-    # For example, if a URL contains repetitive segments like /stayconnected/stayconnected/..., it's likely a trap
-    segments = urlparse(url).path.split('/')
-    # Check if any segment is repeated multiple times
-    for i in range(2, len(segments)):
-        if all(j < len(segments) and segments[j] == segments[j - 1] for j in range(i, i * 2)):
-            return True
-    return False
-
 def scraper(url, resp):
     global sitemaps_links
-    can_crawl = politeness(url) 
+    
+    can_crawl = politeness(url)  # boolean seeing if we can crawl this given url or not
     if can_crawl:
-        links = extract_next_links(url, resp)
-        # Filter out URLs with repetitive patterns
-        links = [link for link in links if not detect_repetitive_pattern(link)]
-        links.extend(sitemaps_links)
-        return [link for link in links if is_valid(link)]
+        links = extract_next_links(url, resp)  # BFSing our way throughout the web through this url
+        links.extend(sitemaps_links)  # add links from sitemaps parsing
+        sitemaps_links.clear()  # clean out the sitemaps links after adding them to the collection of links
+        return [link for link in links if is_valid(link)] # returning valid links
     else:
         print(f"politeness is false for this url: {url}")
-        return []
+        return []  # if crawling is not possible or allowed, we return an empty list
     
+def politeness_time_delay(domain):
+    global last_access_time
+    global robotstxtdict
+    
+    current_time = time.time()  # get the current time
+    last_access = last_access_time[domain]  # get the time this link has been last logged
+    time_since_last_access = current_time - last_access  # calculate the time it has been since link has been last logged
+    crawl_delay = robotstxtdict[domain]['crawl_delay']  # retrieve the crawl delay time from dict
+    if time_since_last_access < crawl_delay: # if not enough time has passed since crawl delay we go into this conditional
+        # Wait for the remaining crawl delay time
+        time.sleep(crawl_delay - time_since_last_access)
+
+def sitemaps_handling(rp):
+    global sitemaps_links
+    
+    sitemap_urls = rp.site_maps()
+    if sitemap_urls:
+        for sitemap_url in sitemap_urls:
+            sitemap_urls_from_helper = get_urls_from_sitemap(sitemap_url)
+            for smu in sitemap_urls_from_helper:
+                sitemaps_links.append(smu)
+
+def robots_txt_and_sitemaps_handling(rp, url, domain):
+    global robotstxtdict
+    
+    can_crawl = True
+    try:
+        rp.read()
+        # Check if the domain has a robots.txt file
+        if not rp.can_fetch("*", url):
+            can_crawl = False
+            return can_crawl
+        try:
+            sitemaps_handling(rp)
+        except:
+            print("NO SITEMAPS")
+        crawl_delay = rp.crawl_delay("*")
+        # Cache the crawl delay and disallowed subdomains in robotstxtdict
+        robotstxtdict[domain] = {
+            'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
+        }
+    except HTTPError as e:
+        # Log other HTTP errors 
+        logging.error(f"HTTPError accessing robots.txt for domain {domain}: {e}")
+        can_crawl = False
+    except URLError as e:
+        # Log URL errors 
+        logging.error(f"URLError accessing robots.txt for domain {domain}: {e}")
+        can_crawl = False
+    except Timeout as e:
+        # Log timeout errors 
+        logging.error(f"Timeout accessing robots.txt for domain {domain}: {e}")
+        can_crawl = False
+    except Exception as e:
+        # Handle other exceptions
+        logging.error(f"Error accessing robots.txt for domain {domain}: {e}")
+        can_crawl = False
+    return can_crawl
 
 def politeness(url):
-    global sitemaps_links
+    global last_access_time
+    global robotstxtdict
+    
     parsed_url = urlparse(url)
     domain = parsed_url.hostname
     can_crawl = True
     # Check if the main domain's robots.txt has already been checked
     if domain in robotstxtdict:
-        # Check if the current URL is in the disallowed subdomains that can't be crawled
-        current_time = time.time()
-        last_access = last_access_time[domain]
-        time_since_last_access = current_time - last_access
-        crawl_delay = robotstxtdict[domain]['crawl_delay']
-        if time_since_last_access < crawl_delay:
-            # Wait for the remaining crawl delay time
-            time.sleep(crawl_delay - time_since_last_access)
+        politeness_time_delay(domain)
         return can_crawl    
     else:
         rp_url = f"{parsed_url.scheme}://{domain}/robots.txt"
         rp = robotparser.RobotFileParser()
         rp.set_url(rp_url)
-        try:
-            rp.read()
-
-            # Check if the domain has a robots.txt file
-            if not rp.can_fetch("*", url):
-                can_crawl = False
-                return can_crawl
-    
-            try:
-                sitemap_urls = rp.site_maps()
-                if sitemap_urls:
-                    for sitemap_url in sitemap_urls:
-                        sitemap_urls_from_helper = get_urls_from_sitemap(sitemap_url)
-                        for smu in sitemap_urls_from_helper:
-                            sitemaps_links.append(smu)
-            except:
-                print("NO SITEMAPS")
-                    
-            crawl_delay = rp.crawl_delay("*")
-            # Cache the crawl delay and disallowed subdomains in robotstxtdict
-            robotstxtdict[domain] = {
-                'crawl_delay': crawl_delay if crawl_delay else DEFAULT_CRAWL_DELAY,
-            }
-        except HTTPError as e:
-            # Log other HTTP errors and set a flag to retry or skip
-            logging.error(f"HTTPError accessing robots.txt for domain {domain}: {e}")
-            can_crawl = False
-        except URLError as e:
-            # Log URL errors and possibly retry after a delay
-            logging.error(f"URLError accessing robots.txt for domain {domain}: {e}")
-            can_crawl = False
-        except Timeout as e:
-            # Log timeout errors and implement a retry strategy
-            logging.error(f"Timeout accessing robots.txt for domain {domain}: {e}")
-            can_crawl = False
-        except Exception as e:
-            # Handle other exceptions
-            logging.error(f"Error accessing robots.txt for domain {domain}: {e}")
-            can_crawl = False
+        can_crawl = robots_txt_and_sitemaps_handling(rp, url, domain)
+        
     last_access_time[domain] = time.time()
     return can_crawl
+
+def tokenize_content(content):
+    soup = BeautifulSoup(content, "lxml")
+    text_content = soup.get_text()
+    tokens = word_tokenize(text_content.lower())
+    return soup, text_content, tokens
 
 def extract_next_links(url, resp):
     global longest_page
     global simhash_index
+    global seen_fingerprints
+    global word_to_occurances
+    
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -219,11 +233,10 @@ def extract_next_links(url, resp):
     if resp.status == 200 and resp.raw_response and resp.raw_response.content: #checks for valid response 
         content = resp.raw_response.content
         try:
-            soup = BeautifulSoup(content, "lxml")
-            text_content = soup.get_text()
-            tokens = word_tokenize(text_content.lower())
+            soup, text_content, tokens = tokenize_content(content)
         except:
             return []
+        
         if has_high_content(soup, text_content, content):
         # Generate a hash of the content for exact duplicate detection
             content_hash = hashlib.sha256(content).hexdigest()
@@ -232,9 +245,6 @@ def extract_next_links(url, resp):
             simhash = Simhash(features)
             
             is_near_duplicate_result = is_near_duplicate(url, simhash, simhash_index)
-            
-            if is_near_duplicate_result:
-                print(f"SIMHASH THING DETECED A NEAR DUPLICATE FOR THIS URL: {url}")
 
             # Check if we have already seen this content or if it is near duplicate
             if content_hash not in seen_fingerprints and not is_near_duplicate_result:
@@ -248,7 +258,6 @@ def extract_next_links(url, resp):
                 for token in tokens_without_stop_words:
                     word_to_occurances[token] += 1
 
-                # simhash_index.add(content_hash, simhash) #add simhash to the index
                 seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
 
                 for link in soup.find_all('a'): #iterates through the links in the webpage
@@ -275,41 +284,55 @@ def extract_next_links(url, resp):
     print(f"EXTRACTED LINKS FROM THIS URL: {url} ARE: {extracted_links}")
     return extracted_links
 
-"""URLs can represent the same page in multiple ways. For example, http://example.com, 
-http://example.com/, http://example.com/index.html, and http://example.com/? could all point to the same resource. Implemened URL 
-canonicalization to standardize URLs and avoid crawling the same content multiple times.
-"""
 def canonicalize_url(url):
     # Parse the URL
     try:
+        url = defragment_url(url)
         parsed = urlparse(url)
         if not parsed:  # Check if parsed is None
             return None
-        # Remove fragment identifier
-        parsed = parsed._replace(fragment='')
-        # Decode encoded characters in the path and query
-        decoded_path = unquote(parsed.path)
+        
+        # From AI helper when asked for suggestions for canonicalization: You decode percent-encoded characters in the path and query, which can help in recognizing identical paths and queries that are represented differently.
+        # When you decode the URL's path and query components using unquote, any percent-encoded characters are converted back to their original form.
+        # For example, if you have a URL like this: https://example.com/path%20with%20spaces/page?query_param=value%20with%20spaces
+        # After decoding, it would look like this: https://example.com/path with spaces/page?query_param=value with spaces
+        decoded_path = unquote(parsed.path) # Decode encoded characters in the path and query
         decoded_query = unquote(parsed.query)
-        # Check if the port matches the default for the scheme
-        default_ports = {"http": 80, "https": 443}
+        
+        # If the port number specified in the URL matches the default port for its scheme, 
+        # it means the port number is redundant (since it's the default one). In such a case, 
+        # there's no need to explicitly include it in the URL. Therefore, parsed = parsed._replace(netloc=parsed.hostname) 
+        # is used to replace the entire netloc component of the parsed URL with just the hostname component. 
+        # This effectively removes the port number from the URL.
+        # This section ensures that URLs are canonicalized by removing the port number if it matches the default port number for the scheme. 
+        # This helps in standardizing URLs and making them more concise.
+        default_ports = {"http": 80, "https": 443}  # Check if the port matches the default for the scheme
         if parsed.port == default_ports.get(parsed.scheme):
-            parsed = parsed._replace(netloc=parsed.hostname)
-        # Add trailing slash if missing and no file extension present
-        if decoded_path and not decoded_path.endswith('/') and not os.path.splitext(decoded_path)[1]:
+            parsed = parsed._replace(netloc=parsed.hostname)  # note netloc is the same as authority, https://www.example.com:8080/path/to/resource, netloc: www.example.com:8080
+        
+        # Add a trailing slash when there is no file extension, which can help in treating directory URLs uniformly
+        if decoded_path and not decoded_path.endswith('/') and not os.path.splitext(decoded_path)[1]: # Add trailing slash if missing and no file extension present
             decoded_path += '/' 
-        # Normalize the path by resolving dot-segments
-        normalized_path = os.path.normpath(decoded_path)  
-        # Sort and encode query parameters
-        query_params = parse_qsl(decoded_query)
+        
+        normalized_path = os.path.normpath(decoded_path)  # The path component of the URL is normalized by resolving any dot-segments (e.g., /./ and /../)
+        
+        # query_params will be a list of tuples, where each tuple represents a key-value pair extracted from the URL's query string.
+        # ex. query_params = [('param1', 'value1'), ('param2', 'value2') ]
+        query_params = parse_qsl(decoded_query)  # Sort and encode query parameters
+        
         # Define known session ID and tracking parameter names
-        session_id_params = ["sessionid", "sid", "phpsessid"]  # Add more if needed
-        tracking_params = ["utm_source", "utm_medium", "utm_campaign"]  # Add more if needed
-        # Remove session ID parameters
-        query_params = [(key, value) for key, value in query_params if key.lower() not in session_id_params]
-        # Remove tracking parameters
-        query_params = [(key, value) for key, value in query_params if key.lower() not in tracking_params]
+        session_id_params = ["sessionid", "sid", "phpsessid"]
+        tracking_params = ["utm_source", "utm_medium", "utm_campaign"]
+        
+        # cleaned up params and sorting them to make some that maybe unordered the same and removing session id and tracking params
+        # Session ID parameters (sessionid, sid, phpsessid, etc.) often result in unique URLs for each session, even if the actual 
+        # content is the same. Removing these parameters ensures that the same content is consistently represented by the same URL, 
+        # which improves caching efficiency.
+        query_params = [(key, value) for key, value in query_params if key.lower() not in session_id_params]  # Remove session ID parameters
+        query_params = [(key, value) for key, value in query_params if key.lower() not in tracking_params]  # Remove tracking parameters
         sorted_params = sorted(query_params)
-        sorted_query = urlencode(sorted_params)
+        sorted_query = urlencode(sorted_params) # now back to something like this: 'category=news&page=1&sort=asc'
+        
         # Convert scheme and netloc to lowercase
         parsed = parsed._replace(scheme=parsed.scheme.lower(),
                                 netloc=parsed.netloc.lower(),
@@ -317,67 +340,90 @@ def canonicalize_url(url):
                                 query=sorted_query)
         # Return the canonicalized URL
         return parsed.geturl() if parsed else None
-    except Exception as e:
+    except Exception as e:  # if for some reason some error occurs during canonicalizing, return None
         print(f"Error canonicalizing URL: {url} with this exception: {e}")
         return None
 
-def is_valid(url):
+def invalid_prefix_check(url):
     global prefixes
-    try:
-        if any(url.startswith(prefix) for prefix in prefixes):
-            logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
+    
+    # check with any urls prefixes or urls match notable BAD urls to skip that cause issues
+    if any(url.startswith(prefix) for prefix in prefixes):
+        logging.warning(f"URL rejected: {url} - Reason: mailto, JavaScript, or Skype URL")
+        return False
+    return True
+
+def bad_url_filter(parsed, url):
+    # check if any of these strings are in the path which leads to undesdired results
+    if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path:
+        return False
+    
+    # only want HTTP or HTTPS
+    if parsed.scheme not in {"http", "https"}:
+        logging.warning(f"URL rejected: {url} - Reason: not HTTP or HTTPS")
+        return False
+    
+    # only want the valid domains
+    valid_domains = [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]
+    # Check if the domain is one of the specified domains
+    if not any(parsed.netloc.endswith(domain) for domain in valid_domains):
+        logging.warning(f"URL rejected: {url} - Reason: domain is NOT one of the specified domains")
+        return False
+    
+    # takeaway most non HTML extensions
+    if NON_HTML_EXTENSIONS_PATTERN.search(parsed.geturl().lower()):
+        logging.warning(f"URL rejected: {url} - Reason: URL ends with a non-HTML file extension")
+        return False
+    return True
+
+def cycle_detection(parsed, url):
+    global visited_url
+    
+    # Check if the path length exceeds the threshold because noticed super long paths almost always indicate a cycle
+    max_path_length = 10
+    path_splt = parsed.path.split('/')
+    len_path_splt = len(path_splt)
+    if len_path_splt > max_path_length:
+        logging.warning(f"URL rejected: {url} - Reason: path length exceeds threshold")
+        return False
+    
+    # seeing if there are duplicates in the path which all most always mean we are in a cycle
+    if len_path_splt != len(set(path_splt)):
+        logging.warning(f"URL rejected: {url} - Reason: Duplicates in path indicating we might be in a cycle")
+        return False
+    
+    # taking away obvious traps/infinite loops such as calenders, etc.
+    for rule in exclusion_rules:
+        if re.search(rule, parsed.geturl()):
+            logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
             return False
-        # Canonicalize the URL
-        canonical_url = canonicalize_url(url)
+    
+    # making sure we do not run into the same URL multiple times
+    if parsed.geturl() in visited_url:
+        print(f"REPEATED URL IS FOUND IN VISITED SET, IGNORING: {url}")
+        return False
+    else:
+        visited_url.add(parsed.geturl())
+        return True
+
+def is_valid(url):
+    url_is_valid = True
+    try:
+        url_is_valid = invalid_prefix_check(url)
+        canonical_url = canonicalize_url(url) # Canonicalize the URL to avoid dupes with different URLs
         if canonical_url is None:
             logging.warning(f"URL could not be accessed because canonical_url is None: {url}")
             return False
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
-        if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path:
-            return False
-        
-        if parsed.scheme not in {"http", "https"}:
-            logging.warning(f"URL rejected: {url} - Reason: not HTTP or HTTPS")
-            return False
-        valid_domains = [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]
-        # Check if the domain is one of the specified domains
-        if not any(parsed.netloc.endswith(domain) for domain in valid_domains):
-            logging.warning(f"URL rejected: {url} - Reason: domain is NOT one of the specified domains")
-            return False
-        #Check if 
-        if NON_HTML_EXTENSIONS_PATTERN.search(parsed.geturl().lower()):
-            logging.warning(f"URL rejected: {url} - Reason: URL ends with a non-HTML file extension")
-            return False
-        # Check if the path length exceeds the threshold
-        max_path_length = 10
-        path_splt = parsed.path.split('/')
-        len_path_splt = len(path_splt)
-        if len_path_splt > max_path_length:
-            logging.warning(f"URL rejected: {url} - Reason: path length exceeds threshold")
-            return False
-        
-        if len_path_splt != len(set(path_splt)):
-            logging.warning(f"URL rejected: {url} - Reason: Duplicates in path indicating we might be in a cycle")
-            return False
-        
-        for rule in exclusion_rules:
-            if re.search(rule, parsed.geturl()):
-                logging.warning(f"URL rejected: {url} - Reason: matches exclusion rule ({rule})")
-                return False
-
-        if parsed.geturl() in visited_url:
-            print(f"REPEATED URL IS FOUND IN VISITED SET, IGNORING: {url}")
-            return False
-        
-        else:
-            visited_url.add(parsed.geturl())
+        url_is_valid = bad_url_filter(parsed, url) and cycle_detection(parsed, url)
         print("------------------------------------------------------------------------")
         print(f"URL validated/accepted: {url}")
         print("------------------------------------------------------------------------")
-        return True
+        return url_is_valid
     except Exception as e:
         print("Exception in is_valid: ", e)
+        return False
 
 def defragment_url(url):
     # removes the fragment section of url and returns the url without it
@@ -406,6 +452,8 @@ def has_high_content(soup, text, html_content):
 
 def is_near_duplicate(url, simhash, simhash_index):
     """Uses simhashing to detect near duplicates of webpages"""
+    global simhash_dict
+    
     similarity_threshold = 0.9
     #checks if webpage is near duplicate by using simhashing
     near_duplicates = simhash_index.get_near_dups(simhash)
