@@ -436,13 +436,13 @@ def defragment_url(url):
 def has_high_content(soup, text, html_content):
     """checks if response has enough textual content by comparing the word to html tag ratio to a given threshold"""
     max_file_size = 2 * 1024 * 1024
-    if len(html_content) > max_file_size: #want to avoid large files
+    if len(html_content) > max_file_size:  # want to avoid large files
         return False
     else :
         text_length = len(text)
         total_length = len(str(soup))
         
-        if total_length == 0:
+        if total_length == 0:  # return false for empty page
             return False
         
         text_to_html_ratio = text_length / total_length
@@ -451,13 +451,14 @@ def has_high_content(soup, text, html_content):
         headers = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
         paragraphs = soup.find_all('p')
 
-        return word_count >= 100 or text_to_html_ratio >= 0.25 or len(headers) >= 3 or len(paragraphs) >= 5
+        return word_count >= 100 or text_to_html_ratio >= 0.25 or len(headers) >= 3 or len(paragraphs) >= 5  # determine high content based on multiple metrics
 
 def is_near_duplicate(url, simhash, simhash_index):
     """Uses simhashing to detect near duplicates of webpages"""
     global simhash_dict
     
     similarity_threshold = 0.9
+    
     #checks if webpage is near duplicate by using simhashing
     near_duplicates = simhash_index.get_near_dups(simhash)
     is_duplicate = any(simhash_dict[dup].distance(simhash) <= similarity_threshold for dup in near_duplicates)
