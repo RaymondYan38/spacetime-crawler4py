@@ -381,6 +381,7 @@ def bad_url_filter(parsed, url):
 
 def cycle_detection(parsed, url):
     global visited_url
+    global exclusion_rules
     
     # Check if the path length exceeds the threshold because noticed super long paths almost always indicate a cycle
     max_path_length = 10
