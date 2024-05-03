@@ -266,8 +266,9 @@ def extract_next_links(url, resp):
                     longest_page[0] = url
                     longest_page[1] = valid_tokens_len
                 
-                for token in tokens_without_stop_words and token.isalpha():
-                    word_to_occurances[token] += 1
+                for token in tokens_without_stop_words:
+                    if token.isalpha():
+                        word_to_occurances[token] += 1
 
                 seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
 
