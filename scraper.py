@@ -80,7 +80,7 @@ prefixes = {"mailto:", "doi:", "javascript:", "skype:", "tel:", "http://timeshee
                          "http://www.isg.ics.uci.edu", "http://hombao.ics.uci.edu/hernando.html", "https://wics.ics.uci.edu/event/project-meeting-6/?ical=1", "https://wics.ics.uci.edu/wics-attends-cwic-socal/?afg34_page_id=2",
                          "https://wics.ics.uci.edu/wics-fall-quarter-week-5-mentorship-reveal/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-8-academic-planning-workshop/?afg100_page_id=2", "https://wics.ics.uci.edu/wics-fall-quarter-week-8-academic-planning-workshop/?share=facebook",
                          "https://wics.ics.uci.edu/week-5-facebook-women-panel/?afg44_page_id=2", "https://wics.ics.uci.edu/wics-fall-quarter-week-9-friendsgiving-potluck/?share=facebook", "https://wics.ics.uci.edu/category/news/page/11", 
-                         "https://wics.ics.uci.edu/wics-winter-quarter-week-2-wics-x-acm-technical-interview-prep-workshop/?share=facebook"}
+                         "https://wics.ics.uci.edu/wics-winter-quarter-week-2-wics-x-acm-technical-interview-prep-workshop/?share=facebook", "https://www.ics.uci.edu/community/news/view_news.php"}
 
 longest_page = [None, float("-inf")]
 simhash_index = SimhashIndex([], k=3)
@@ -258,7 +258,7 @@ def extract_next_links(url, resp):
                     longest_page[0] = url
                     longest_page[1] = valid_tokens_len
                 
-                for token in tokens_without_stop_words:
+                for token in tokens_without_stop_words and token.isalpha():
                     word_to_occurances[token] += 1
 
                 seen_fingerprints.add(content_hash)  # Add new fingerprint to the set
@@ -414,6 +414,10 @@ def is_valid(url):
     url_is_valid = True
     try:
         url_is_valid = invalid_prefix_check(url)
+        
+        if not url_is_valid:
+            return False
+        
         canonical_url = canonicalize_url(url) # Canonicalize the URL to avoid dupes with different URLs
         if canonical_url is None:
             logging.warning(f"URL could not be accessed because canonical_url is None: {url}")
@@ -421,9 +425,10 @@ def is_valid(url):
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
         url_is_valid = bad_url_filter(parsed, url) and cycle_detection(parsed, url)
-        print("------------------------------------------------------------------------")
-        print(f"URL validated/accepted: {url}")
-        print("------------------------------------------------------------------------")
+        if url_is_valid:
+            print("------------------------------------------------------------------------")
+            print(f"URL validated/accepted: {url}")
+            print("------------------------------------------------------------------------")
         return url_is_valid
     except Exception as e:
         print("Exception in is_valid: ", e)
@@ -459,7 +464,6 @@ def is_near_duplicate(url, simhash, simhash_index):
     global simhash_dict
     
     similarity_threshold = 0.9
-    
     #checks if webpage is near duplicate by using simhashing
     near_duplicates = simhash_index.get_near_dups(simhash)
     is_duplicate = any(simhash_dict[dup].distance(simhash) <= similarity_threshold for dup in near_duplicates)

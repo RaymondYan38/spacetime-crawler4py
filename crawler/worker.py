@@ -47,8 +47,8 @@ class Worker(Thread):
                 subdomain_to_occ[split_url.netloc] += 1
             
         with open("report.txt", "w") as f1:
-            f1.write(f"1. How many unique pages did you find?: {num_unique_pages}\n")
-            f1.write("2. What is the longest page in terms of the number of words?:\n")
+            f1.write(f"1. How many unique pages did you find?: {num_unique_pages}\n\n")
+            f1.write("2. What is the longest page in terms of the number of words?:\n\n")
             f1.write(f"Url: {longest_page[0]}\n")
             f1.write(f"Length: {longest_page[1]}\n")
             f1.write("3. What are the 50 most common words in the entire set of pages crawled under these domains?\n")
@@ -58,10 +58,10 @@ class Worker(Thread):
                 x += 1
                 if x >= 50:
                     break
-            f1.write("4. How many subdomains did you find in the ics.uci.edu domain? Submit the list of subdomains ordered alphabetically and the number of unique pages detected in each subdomain.\n")
+            f1.write("\n4. How many subdomains did you find in the ics.uci.edu domain? Submit the list of subdomains ordered alphabetically and the number of unique pages detected in each subdomain.\n")
             for url, occ in sorted(subdomain_to_occ.items(), key=lambda x: x[0]):
                 f1.write(f"{url}: {occ}\n")
-            f1.write("----------------------------ADDITIONAL INFORMATION NOT REQUIRED----------------------------\n")
+            f1.write("\n----------------------------ADDITIONAL INFORMATION NOT REQUIRED----------------------------\n")
             f1.write("UNIQUE URLS WE SEEN: \n")
             for url, _ in self.frontier.save.values():
                 f1.write(f"{url}\n")
