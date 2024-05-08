@@ -38,49 +38,7 @@ prefixes = {"mailto:", "doi:", "javascript:", "skype:", "tel:", "http://timeshee
                        "http://jujube.ics.uci.edu", "http://duke.ics.uci.edu", "http://www.ics.uci.edu/~agelfand/fig", "http://mapgrid.ics.uci.edu/%22", "http://fano", "http://seraja.ics.uci.edu/eva", "https://wics.ics.uci.edu/aspireit-2018/?afg84_page_id=5",
                          "https://fano", "http://alumni.ics.uci.edu/200", "https://password.ics", "http://DataGuard.ics.uci.edu","http://DataProtector.ics.uci.edu","http://hana.ics.uci.edu", "http://sprout.ics.uci.edu", "http://codeexchange.ics.uci.edu",
                          "http://www.ics.uci.edu/pub/", "https://mailman.ics.uci.edu", "http://cocoa-krispies.ics.uci.edu", "https://hombao.ics.uci.edu", "http://cloudberry.ics.uci.edu", "https://www.cs.uci.edu/sandy-irani-and-sameer-singh-receive-distinguished-faculty-awards",
-                         "http://asterixdb.ics.uci.edu", "https://wics.ics.uci.edu/women-empowering-women-lunch-2018/?share=twitter", "https://emj.ics.uci.edu/wp-content/uploads", "http://emj", "http://cybert.ics.uci.edu/", "http://contact", "http://sidepro", "http://www.ics.uci.edu/~ccsp",
-                         "http://tmbpro", "http://kdd.ics.uci.edu", "http://www-db.ics.uci.edu/glimpse_index/wgindex.shtml", "http://www-db.ics.uci.edu/pages/internal/index.shtml", "http://www.ics.uci.edu/software",
-                         "http://www-db.ics.uci.edu/glimpse_index/wgindex.shtml", "http://www-db.ics.uci.edu/pages/internal/index.shtml", "https://wics.ics.uci.edu/fall-2021-week-3-committee-applications",
-                         "https://wics.ics.uci.edu/fall-2021-week-8-wics-game-night/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-5-mentorship-reveal/?afg97_page_id=1", "https://wics.ics.uci.edu/events/2022-01-24/?ical=1",
-                         "https://wics.ics.uci.edu/wics-fall-quarter-week-5-mentorship-reveal/?share=facebook", "https://wics.ics.uci.edu/events/category/holiday", "http://pasteur.ics.uci.edu", "https://www.graphics.ics.uci.edu/publications",
-                         "http://auge.ics.uci.edu", "http://omni.ics.uci.edu", "http://map125.ics.uci.edu", "https://wics.ics.uci.edu/event/fall-2022-week-1-first-general-meeting-and-social/", "https://wics.ics.uci.edu/events/2021-10-25",
-                         "https://wics.ics.uci.edu/wics-fall-quarter-week-5-mentorship-reveal/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-5-mentorship-reveal/?afg97_page_id=1", "https://wics.ics.uci.edu/events/2022-10-07", 
-                         "https://wics.ics.uci.edu/wics-fall-quarter-week-5-mentorship-reveal/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-8-academic-planning-workshop/?afg100_page_id=2", "https://wics.ics.uci.edu/wics-fall-quarter-week-8-movie-night/?share=facebook",
-                         "https://wics.ics.uci.edu/wics-fall-quarter-week-8-academic-planning-workshop/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-8-academic-planning-workshop/?afg100_page_id=2",
-                         "https://wics.ics.uci.edu/3", "https://wics.ics.uci.edu/wics-winter-quarter-week-5-study-session", "https://wics.ics.uci.edu/week-5-facebook-women-panel/?afg44_page_id=2", "https://www.informatics.uci.edu/filter-test",
-                         "https://wics.ics.uci.edu/week-3-wicsvgdc-workshop/?afg45_page_id=4", "https://wics.ics.uci.edu/winter-2021-week-8-from-inception-to-delivery-with-intel/?share=twitter", "https://wics.ics.uci.edu/wics-fall-quarter-week-6-mentorship-reveal",
-                         "https://wics.ics.uci.edu/spring-2021-week-1-wics-first-general-meeting", "https://wics.ics.uci.edu/fall-2020-week-5-wics-committee-applications-qa", "https://wics.ics.uci.edu/events/2022-10-19/?ical=1",
-                         "https://wics.ics.uci.edu/event/project-meeting-2/?ical=1", "https://wics.ics.uci.edu/events/category/workshop/2022-07", "https://wics.ics.uci.edu/event/project-meeting-6/?ical=1",
-                         "https://wics.ics.uci.edu/event/websites-due", "https://wics.ics.uci.edu/events/category/social-gathering/2022-08", "https://wics.ics.uci.edu/hackuci-spring-2014/?share=facebook",
-                         "https://wics.ics.uci.edu/android-app-finale/?afg31_page_id=1", "https://wics.ics.uci.edu/wics-spring-quarter-week-3-ghc-info-session/?share=twitter", "https://wics.ics.uci.edu/aspireit-2018/?afg84_page_id=1",
-                         "https://wics.ics.uci.edu/wics-spring-quarter-week-1-first-general-meeting/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-2-mentorship-mixer-2/?share=facebook",
-                         "https://wics.ics.uci.edu/wics-fall-quarter-week-2-meet-the-board-social-qa/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-5-facebook-coding-event", "https://wics.ics.uci.edu/events/2022-04-18/?ical=1",
-                         "https://wics.ics.uci.edu/spring-potluck-with-ics-clubs/?afg36_page_id=4", "https://wics.ics.uci.edu/event/wics-study-session/?ical=1", "https://wics.ics.uci.edu/events/category/wics-meeting-dbh-5011/2022-07",
-                         "https://wics.ics.uci.edu/week-2-broadcom-info-session/?afg9_page_id=1", "https://wics.ics.uci.edu/wics-is-awarded-the-ncwit-student-seed-fund/?share=twitter", "https://wics.ics.uci.edu/masimo-presents-the-hidden-job-market/?share=twitter",
-                         "https://wics.ics.uci.edu/week-8-thanksgiving-potluck", "https://wics.ics.uci.edu/week-3-resume-workshop/?afg10_page_id=2", "https://wics.ics.uci.edu/wics-hosts-a-toy-hacking-workshop-with-dr-garnet-hertz/13-02-03-toy-hacker-020",
-                         "https://wics.ics.uci.edu/wics-hosts-a-toy-hacking-workshop-with-dr-garnet-hertz/?share=twitter", "https://wics.ics.uci.edu/verizon-info-session/?afg41_page_id=1", "https://wics.ics.uci.edu/recurse-center",
-                         "https://wics.ics.uci.edu/grace-hopper-celebration-2014/?share=facebook", "https://wics.ics.uci.edu/grace-hopper-celebration-2014/?share=twitter", "https://wics.ics.uci.edu/week-2-ios-beginner-workshop/?afg46_page_id=2",
-                         "https://wics.ics.uci.edu/wics-littlebits-workshops/?afg30_page_id=3", "https://wics.ics.uci.edu/wics-littlebits-workshops/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-2-zillow-pitch-yourself-workshop/?share=twitter",
-                         "https://wics.ics.uci.edu/wics-fall-quarter-week-2-mentorship-mixer-3/?share=facebook", "https://wics.ics.uci.edu/studying-with-wics-2/?share=facebook", "https://wics.ics.uci.edu/winter-2022-week-8-virtual-kahoot-clash-collab",
-                         "https://wics.ics.uci.edu/board-game-night/?share=twitter", "https://wics.ics.uci.edu/wics-resume-workshop/?afg59_page_id=2", "https://wics.ics.uci.edu/fall-quarter-2017-week-5-wics-mentorship-reveal/?afg73_page_id=1",
-                         "https://wics.ics.uci.edu/fall-quarter-2016-week-4-mentorship-reveal/?share=facebook", "https://wics.ics.uci.edu/fall-quarter-2016-prosky-interactive-info-session/?share=facebook", "https://wics.ics.uci.edu/fall-quarter-2016-week-1-mentorship-mixer/img_2349",
-                         "https://wics.ics.uci.edu/spring-quarter-2017-week-2-intro-to-command-line-workshop-w-hack/?share=facebook", "https://wics.ics.uci.edu/fall-quarter-2017-week-0-wics-social/?share=twitter", "https://wics.ics.uci.edu/winter-quarter-2017-week-5-twilio-info-session/?share=facebook",
-                         "https://wics.ics.uci.edu/wics-fall-quarter-week-4-twitter-qa-and-info-session/?share=facebook", "https://wics.ics.uci.edu/wics-attends-cwic-socal/?afg34_page_id=2", "https://wics.ics.uci.edu/fall-2021-week-1-wics-first-general-meeting/?share=twitter",
-                         "https://wics.ics.uci.edu/fall-2021-week-2-wics-mentorship-mixer/?share=facebook", "https://wics.ics.uci.edu/fall-2021-week-4-resume-workshop/?share=facebook", "https://wics.ics.uci.edu/first-annual-wics-games/?afg37_page_id=1",
-                         "https://wics.ics.uci.edu/winter-2021-week-2-inscripta-info-session/?share=twitter", "https://wics.ics.uci.edu/gen-meeting-and-mentorship-14/?afg38_page_id=4", "https://wics.ics.uci.edu/spring-2022-week-1-general-retreat",
-                         "https://wics.ics.uci.edu/author/admin/page/8", "https://wics.ics.uci.edu/author/admin/page/19", "https://wics.ics.uci.edu/spring-2022-week-9-wicsxfactor/?share=twitter",
-                         "https://wics.ics.uci.edu/spring-2022-week-8-wicsino-night/?share=twitter", "https://wics.ics.uci.edu/spring-2022-week-9-wicsxpics", "https://wics.ics.uci.edu/wics-spring-quarter-week-6-acing-the-technical-interview-with-the-portal",
-                         "https://wics.ics.uci.edu/event/spring-2022-week-4-mentorship-linkedin-workshop", "https://wics.ics.uci.edu/wics-winter-quarter-week-3-mock-technical-interviews", "https://wics.ics.uci.edu/events/2022-05-24",
-                         "https://wics.ics.uci.edu/events/2022-05-23/?ical=1", "https://wics.ics.uci.edu/events/2022-02-28/?ical=1", "https://wics.ics.uci.edu/event/winter-2022-week-2-mock-technical-interviews-prep/?ical=1",
-                         "https://wics.ics.uci.edu/event/fall-2021-week-4-resume-workshop/?ical=1", "https://wics.ics.uci.edu/event/whisk-with-wics", "https://wics.ics.uci.edu/events/2022-01-03",
-                         "https://wics.ics.uci.edu/events/2021-10-25", "https://wics.ics.uci.edu/events/2021-05", "https://wics.ics.uci.edu/events/2022-04-22", "https://wics.ics.uci.edu/events/2022-03-29",
-                         "https://wics.ics.uci.edu/event/spring-2022-week-1-general-meeting-utc-social/?ical=1", "https://wics.ics.uci.edu/events/2022-04-12", "https://wics.ics.uci.edu/wics-fall-quarter-week-1-first-general-meeting-3/?share=twitter",
-                         "https://wics.ics.uci.edu/fall-2022-week-3-wics-games/?share=facebook", "http://www.ics.uci.edu/software/CCT", "https://www.cs.uci.edu/sandy-irani-and-sameer-singh-receive-distinguished-faculty-awards",
-                         "http://checkmate.ics.uci.edu", "http://asterix.ics.uci.edu/fuzzyjoin-mapreduce", "http://flamingo.ics.uci.edu/localsearch/fuzzysearch", "https://asterixdb.ics.uci.edu/fuzzyjoin-mapreduce",
-                         "http://www.isg.ics.uci.edu", "http://hombao.ics.uci.edu/hernando.html", "https://wics.ics.uci.edu/event/project-meeting-6/?ical=1", "https://wics.ics.uci.edu/wics-attends-cwic-socal/?afg34_page_id=2",
-                         "https://wics.ics.uci.edu/wics-fall-quarter-week-5-mentorship-reveal/?share=facebook", "https://wics.ics.uci.edu/wics-fall-quarter-week-8-academic-planning-workshop/?afg100_page_id=2", "https://wics.ics.uci.edu/wics-fall-quarter-week-8-academic-planning-workshop/?share=facebook",
-                         "https://wics.ics.uci.edu/week-5-facebook-women-panel/?afg44_page_id=2", "https://wics.ics.uci.edu/wics-fall-quarter-week-9-friendsgiving-potluck/?share=facebook", "https://wics.ics.uci.edu/category/news/page/11", 
-                         "https://wics.ics.uci.edu/wics-winter-quarter-week-2-wics-x-acm-technical-interview-prep-workshop/?share=facebook", "https://www.ics.uci.edu/community/news/view_news.php"}
+                         "http://asterixdb.ics.uci.edu",  "https://www.ics.uci.edu/community/news/view_news.php"}
 
 longest_page = [None, float("-inf")]
 simhash_index = SimhashIndex([], k=3)
@@ -101,6 +59,7 @@ exclusion_rules = [
 sitemaps_links = list()
 
 def scraper(url, resp):
+    """Main function that checks for politeness, extracts links, and checks if they are valid. Returns a list of all the valid links"""
     global sitemaps_links
     
     can_crawl = politeness(url)  # boolean seeing if we can crawl this given url or not
@@ -110,10 +69,10 @@ def scraper(url, resp):
         sitemaps_links.clear()  # clean out the sitemaps links after adding them to the collection of links
         return [link for link in links if is_valid(link)] # returning valid links
     else:
-        print(f"politeness is false for this url: {url}")
         return []  # if crawling is not possible or allowed, we return an empty list
     
 def politeness_time_delay(domain):
+    """Adding a time delay based on crawl delay from robots.txt files for our crawler"""
     global last_access_time
     global robotstxtdict
     
@@ -126,6 +85,7 @@ def politeness_time_delay(domain):
         time.sleep(crawl_delay - time_since_last_access)
         
 def get_urls_from_sitemap(sitemap_url):
+    """Getting additional urls directly from the sitemaps and returning them"""
     urls = []  # Initializing an empty list to store URLs
     parsed_url = urljoin(sitemap_url, '/sitemap.xml')  # Constructing the full URL of the sitemap file
     conn = HTTPConnection(parsed_url)  # Establishing an HTTP connection to the sitemap URL
@@ -141,6 +101,7 @@ def get_urls_from_sitemap(sitemap_url):
     return urls
 
 def sitemaps_handling(rp):
+    """parsing sitemaps.xml files from robots.txt files and appending them to out sitemaps_links list"""
     global sitemaps_links
     
     sitemap_urls = rp.site_maps()  # get site maps
@@ -151,19 +112,20 @@ def sitemaps_handling(rp):
                 sitemaps_links.append(smu)
 
 def robots_txt_and_sitemaps_handling(rp, url, domain):
+    """Parsing the robots.txt file to check if we are able to crawl at this current moment along with adding information to robotstxtdict"""
     global robotstxtdict
     
     can_crawl = True
     try:
         rp.read()
-        # Check if the domain has a robots.txt file
-        if not rp.can_fetch("*", url):
+        
+        if not rp.can_fetch("*", url):  # seeing if we are allowed to crawl this specific URL
             can_crawl = False
             return can_crawl
         try:
-            sitemaps_handling(rp)
+            sitemaps_handling(rp)  # adding sitemaps links
         except:
-            print("NO SITEMAPS")
+            pass
         crawl_delay = rp.crawl_delay("*")  # obtain crawl delay
         
         # Cache the crawl delay and disallowed subdomains in robotstxtdict
@@ -191,6 +153,7 @@ def robots_txt_and_sitemaps_handling(rp, url, domain):
     return can_crawl
 
 def politeness(url):
+    """Making sure that we are allowed to crawl the url we are looking at when given to us from the frontier based on politeness"""
     global last_access_time
     global robotstxtdict
     
@@ -202,21 +165,23 @@ def politeness(url):
         politeness_time_delay(domain)
         return can_crawl    
     else:
-        rp_url = f"{parsed_url.scheme}://{domain}/robots.txt"
-        rp = robotparser.RobotFileParser()
+        rp_url = f"{parsed_url.scheme}://{domain}/robots.txt"  # url to robots.txt for domains
+        rp = robotparser.RobotFileParser()  
         rp.set_url(rp_url)
-        can_crawl = robots_txt_and_sitemaps_handling(rp, url, domain)
+        can_crawl = robots_txt_and_sitemaps_handling(rp, url, domain)  # checking if a site can be crawled or not
         
-    last_access_time[domain] = time.time()
+    last_access_time[domain] = time.time()  # updating last accesses time of a link
     return can_crawl
 
 def tokenize_content(content):
-    soup = BeautifulSoup(content, "lxml") # using bs4 to take information from website
+    """"Uses word_tokenize from nltk library to split content into tokens. Returns the Beautiful soup object, text content of the file, and tokens"""
+    soup = BeautifulSoup(content, "lxml") # using bs4 to take information from website, lxml more efficient and fixes recursion errors based on AI tutor
     text_content = soup.get_text()
     tokens = word_tokenize(text_content.lower()) # tokenizing
     return soup, text_content, tokens
 
 def extract_next_links(url, resp):
+    """extracting additional links from url from the frontier that can potentially be added to the frontier along with near duplicate checking"""
     global longest_page
     global simhash_index
     global seen_fingerprints
@@ -255,11 +220,11 @@ def extract_next_links(url, resp):
                 #tokenize and track word occurences for report
                 tokens_without_stop_words = [token for token in tokens if token not in sw and len(token) >= 2]
                 valid_tokens_len = len(tokens)
-                if valid_tokens_len > longest_page[1]:
+                if valid_tokens_len > longest_page[1]:  # updating longest page found
                     longest_page[0] = url
                     longest_page[1] = valid_tokens_len
                 
-                for token in tokens_without_stop_words:
+                for token in tokens_without_stop_words:  # updating most common words found dictionary
                     if token.isalpha():
                         word_to_occurances[token] += 1
 
@@ -271,25 +236,20 @@ def extract_next_links(url, resp):
                         clean_url = urljoin(base_url, tempURL) #resolves relative URLs
                         clean_url = defragment_url(clean_url) #removes fragmentation
                         extracted_links.add(clean_url)     
-        else:
-            print(f"This url DO NOT HAVE HIGH CONTENT SO WE IGNORE: {url}")
-    elif resp is None or resp.raw_response is None:
+    elif resp is None or resp.raw_response is None: #if no content or response we return empty list
         return []
-    elif resp and resp.status in {301, 302}: #handles redirects
+    elif resp and resp.status in {301, 302, 307, 308}: #handles redirects by getting location header and joining it with the base_url
         location_header = resp.headers.get('Location')
         if location_header:
             redirect_url = urljoin(base_url, location_header)
             extracted_links.add(redirect_url)
-    elif resp.status not in {200, 301, 302}:
-        print(f"URL's res.status not in [200, 301, 302], it was: {resp.status} and the error was: {resp.error}")
+    elif resp.status not in {200, 301, 30, 307, 308}: # if not in a given set of status codes, we return empty list
         return []
-    elif not (url == resp.raw_response.url):
-        return [resp.raw_response.url]
     extracted_links = list(extracted_links)
-    print(f"EXTRACTED LINKS FROM THIS URL: {url} ARE: {extracted_links}")
     return extracted_links
 
 def canonicalize_url(url):
+    """"canonicalizing URLs to standardize them for easier work"""
     # Parse the URL
     try:
         url = defragment_url(url)
@@ -346,10 +306,10 @@ def canonicalize_url(url):
         # Return the canonicalized URL
         return parsed.geturl() if parsed else None
     except Exception as e:  # if for some reason some error occurs during canonicalizing, return None
-        print(f"Error canonicalizing URL: {url} with this exception: {e}")
         return None
 
 def invalid_prefix_check(url):
+    """filtering out prefixes of troublesome sites that cause issues"""
     global prefixes
     
     # check with any urls prefixes or urls match notable BAD urls to skip that cause issues
@@ -359,6 +319,7 @@ def invalid_prefix_check(url):
     return True
 
 def bad_url_filter(parsed, url):
+    """Filtering out bad urls based on pathing, schemes, domains, and extensions"""
     # check if any of these strings are in the path which leads to undesdired results
     if '.pdf' in parsed.path or '/pdf/' in parsed.path or 'json' in parsed.path or 'doku.php' in parsed.path:
         return False
@@ -382,6 +343,7 @@ def bad_url_filter(parsed, url):
     return True
 
 def cycle_detection(parsed, url):
+    """multiple checks to see if we are in a cycle, returning a boolean indicating whether or not we are"""
     global visited_url
     global exclusion_rules
     
@@ -406,13 +368,13 @@ def cycle_detection(parsed, url):
     
     # making sure we do not run into the same URL multiple times
     if parsed.geturl() in visited_url:
-        print(f"REPEATED URL IS FOUND IN VISITED SET, IGNORING: {url}")
         return False
     else:
         visited_url.add(parsed.geturl())
         return True
 
 def is_valid(url):
+    """"Checks if url is valid by our definition and canonicalizes it. Returns a boolean value"""
     url_is_valid = True
     try:
         url_is_valid = invalid_prefix_check(url)
@@ -427,17 +389,13 @@ def is_valid(url):
         # Parse the canonicalized URL
         parsed = urlparse(canonical_url)
         url_is_valid = bad_url_filter(parsed, url) and cycle_detection(parsed, url)
-        if url_is_valid:
-            print("------------------------------------------------------------------------")
-            print(f"URL validated/accepted: {url}")
-            print("------------------------------------------------------------------------")
         return url_is_valid
     except Exception as e:
-        print("Exception in is_valid: ", e)
         return False
 
 def defragment_url(url):
-    # removes the fragment section of url and returns the url without it
+    """removes the fragment section of url and returns the url without it"""
+
     parsed_url = urlparse(url)._replace(fragment='')
     return urlunparse(parsed_url)
 
@@ -453,10 +411,10 @@ def has_high_content(soup, text, html_content):
         if total_length == 0:  # return false for empty page
             return False
         
-        text_to_html_ratio = text_length / total_length
+        text_to_html_ratio = text_length / total_length  # metric based on html to text_length ratio
         word_count = len(text.split())
 
-        headers = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+        headers = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])  # another metric to determine high textual content using hea
         paragraphs = soup.find_all('p')
 
         return word_count >= 100 or text_to_html_ratio >= 0.25 or len(headers) >= 3 or len(paragraphs) >= 5  # determine high content based on multiple metrics
@@ -472,6 +430,7 @@ def is_near_duplicate(url, simhash, simhash_index):
     if is_duplicate:
         return True
     else:
+        # if not a duplate, we add simhash index of url to its identifier
         simhash_dict[url] = simhash
         simhash_index.add(url, simhash)
         return False
