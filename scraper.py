@@ -22,6 +22,9 @@ from http.client import HTTPConnection
 
 seen_fingerprints = set()
 
+# Improve performance when the pattern will be used multiple times. 
+# When you compile a regex pattern, Python pre-processes it, 
+# which can make subsequent matching operations faster.
 NON_HTML_EXTENSIONS_PATTERN = re.compile(
     r"\.(apk|css|js|bmp|gif|jpe?g|ico"
     + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -33,6 +36,7 @@ NON_HTML_EXTENSIONS_PATTERN = re.compile(
     + r"|rm|smil|wmv|swf|wma|zip|rar|gz|json|mpg|flv|sh|img|sql|war|cgi|xls)$"
 )
 
+# problematic prefixes we ran into
 prefixes = {"mailto:", "doi:", "javascript:", "skype:", "tel:", "http://timesheet.ics.uci.edu","https://support.ics.uci.edu/passwd/index.php" , "http://dblp.ics.uci.edu/authors", "https://www.ics.uci.edu/ugrad/honors", "https://archive.ics.uci.edu/ml", "http://tippersweb.ics.uci.edu",
                      "https://tippersweb.ics.uci.edu", "http://sli.ics.uci.edu/Ihler-Photos/Main", "http://sli.ics.uci.edu/~ihler/uai-data", "https://ics.uci.edu/~eppstein/pix", "http://metaviz.ics.uci.edu", "https://www.cs.uci.edu/reappointment-of-dean-marios-papaefthymiou",
                        "http://jujube.ics.uci.edu", "http://duke.ics.uci.edu", "http://www.ics.uci.edu/~agelfand/fig", "http://mapgrid.ics.uci.edu/%22", "http://fano", "http://seraja.ics.uci.edu/eva", "https://wics.ics.uci.edu/aspireit-2018/?afg84_page_id=5",
@@ -41,15 +45,22 @@ prefixes = {"mailto:", "doi:", "javascript:", "skype:", "tel:", "http://timeshee
                          "http://asterixdb.ics.uci.edu",  "https://www.ics.uci.edu/community/news/view_news.php"}
 
 longest_page = [None, float("-inf")]
+# The k parameter typically determines the number of bits that are retained from the hash value to form the final fingerprint.
 simhash_index = SimhashIndex([], k=3)
 simhash_dict = dict()
 visited_url = set()
-DEFAULT_CRAWL_DELAY = 1
+DEFAULT_CRAWL_DELAY = 1  # 1 second default crawl delay if not specified in robots.txt
 
 word_to_occurances = defaultdict(int)
 last_access_time = {}
 robotstxtdict = {}
 
+# /calendar/ matches the literal string "/calendar/"
+# \d{4} matches exactly four digit characters, typically representing the year in YYYY format.
+# /\d{2}/ matches exactly two digit characters, typically representing the month in MM format.
+# /\d{2}/ again matches exactly two digit characters, typically representing the day in DD format.
+# \b asserts a word boundary, ensuring that "sessionid" or "sort" is a separate word and not part of a larger word.
+# \w+ matches one or more word characters (letters, digits, or underscores).
 exclusion_rules = [
     r'/calendar/\d{4}/\d{2}/\d{2}/',
     r'\bsessionid=\w+',
@@ -156,7 +167,9 @@ def politeness(url):
     """Making sure that we are allowed to crawl the url we are looking at when given to us from the frontier based on politeness"""
     global last_access_time
     global robotstxtdict
-    
+    # The urlparse function from the urllib.parse module in Python is used to parse a URL string into its components, 
+    # such as scheme, network location, path, parameters, query, and fragment. It breaks down a URL string into several parts, 
+    # making it easier to work with each component individually.
     parsed_url = urlparse(url)
     domain = parsed_url.hostname
     can_crawl = True
